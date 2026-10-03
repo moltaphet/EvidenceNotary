@@ -21,6 +21,8 @@ RPC_URL = "https://studio-next.genlayer.com/api"  # Studio Next, chain id 61997
 CHAIN_ID = 61997
 EXPLORER = "https://explorer-studio-next.genlayer.com"
 FEE = 5 * 10**16  # 0.05 GEN
+PENALTY = FEE // 5  # 0.01 GEN non-refundable on a failed attestation
+REFUND = FEE - PENALTY  # 0.04 GEN to claimable_credits
 MIN_BALANCE = 5 * 10**17
 FEE_ESTIMATE_OPTIONS = {
     "leaderTimeunitsAllocation": 100,

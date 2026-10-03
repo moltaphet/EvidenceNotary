@@ -28,6 +28,10 @@ def main() -> None:
     data = receipt.get("data") or {}
     address = data.get("contract_address") or (receipt.get("tx_data_decoded") or {}).get("contract_address") \
         or (receipt.get("txDataDecoded") or {}).get("contractAddress")
+    if status != "FINISHED_WITH_RETURN" or consensus not in ("MAJORITY_AGREE", "AGREE"):
+        lr = (receipt.get("consensus_data") or {}).get("leader_receipt") or [{}]
+        raise SystemExit(f"deploy FAILED on-chain (status {status}, consensus {consensus}): "
+                         f"{(lr[0] if isinstance(lr, list) else lr).get('result')}")
     if not address:
         print(json.dumps(receipt, indent=2, default=str)[:3000])
         raise SystemExit(f"deploy did not yield a contract address (status {status})")

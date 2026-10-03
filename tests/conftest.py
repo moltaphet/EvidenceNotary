@@ -14,6 +14,9 @@ import pytest
 
 CONTRACT = "contracts/evidence_notary.py"
 FEE = 5 * 10**16  # 0.05 GEN in atto-GEN
+PENALTY = FEE // 5  # 0.01 GEN non-refundable bandwidth fee on a failed attestation
+REFUND = FEE - PENALTY  # 0.04 GEN returned to claimable_credits
+MAX_PAYLOAD = 4 * 1024 * 1024
 
 LONG_TEXT = (
     "The notary records a content hash for every document it is shown. "
@@ -21,27 +24,47 @@ LONG_TEXT = (
 )
 
 
-def html_page(body_text=LONG_TEXT, title="Sample Document", extra_chrome=""):
-    """A realistic page: chrome around one <article>."""
+def html_page(body_text=LONG_TEXT, title="Sample Document", tracker=""):
+    """A realistic page. Only <script>/<style>/<noscript>/<svg>/<canvas> are
+    non-rendered; every other element's text is part of the document."""
     return (
         "<!DOCTYPE html><html><head><meta charset='utf-8'>"
         f"<title>{title}</title>"
         "<style>body{font-family:serif}.ad{display:none}</style>"
-        "<script>window.tracker = 'noise-" + extra_chrome + "';</script></head><body>"
+        "<script>window.tracker = 'noise-" + tracker + "';</script></head><body>"
         "<header><div>Site Header Logo</div></header>"
         "<nav><ul><li>Home</li><li>Docs</li><li>Pricing</li></ul></nav>"
         "<div class='cookie-banner'>We use cookies. Accept all.</div>"
-        "<div class='advert'>Buy now " + extra_chrome + "</div>"
+        "<div class='advert'>Buy now</div>"
         f"<article><h1>{title}</h1><p>{body_text}</p></article>"
         "<aside>Related links</aside>"
         "<footer>Copyright footer text</footer>"
-        "<script>document.write('late script')</script></body></html>"
+        "<script>document.write('late script " + tracker + "')</script></body></html>"
     )
+
+
+def page_text(body_text=LONG_TEXT, title="Sample Document"):
+    """The normalized text html_page() must reduce to (document order)."""
+    return (
+        "Site Header Logo Home Docs Pricing We use cookies. Accept all. Buy now "
+        f"{title} {body_text} Related links Copyright footer text"
+    )
+
+
+def typed(body, content_type, status=200):
+    """A full-format web mock carrying a Content-Type header and raw bytes."""
+    if isinstance(body, str):
+        body = body.encode("utf-8")
+    return {"response": {"status": status, "headers": {"Content-Type": content_type.encode()}, "body": body}}
 
 
 def expected_hash(text):
     """Independent reference: SHA-256 over single-space-folded text."""
     return hashlib.sha256(" ".join(text.split()).encode("utf-8")).hexdigest()
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
 
 
 class Chain:

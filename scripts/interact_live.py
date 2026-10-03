@@ -3,7 +3,7 @@
     python scripts/interact_live.py
 
 Cases: RFC 9000, Python 3.13 release notes, W3C DID Core, and a dead docs.python.org
-URL that must end in a fee refund. Each case records the transaction hash, the
+URL that must end in the 80/20 split (0.04 GEN refundable, 0.01 GEN kept). Each case records the transaction hash, the
 validator consensus result and per-validator votes, the on-chain attestation,
 and the contract's accounting before and after. The refund is then withdrawn
 and the vault swept, with the solvency identity read back from the contract
@@ -23,7 +23,7 @@ CASES = [
     ("RFC 9000 -- QUIC transport specification", "https://rfc-editor.org/rfc/rfc9000", True),
     ("Python 3.13 release notes", "https://docs.python.org/3/whatsnew/3.13.html", True),
     ("W3C Decentralized Identifiers (DID Core)", "https://w3.org/TR/did-core/", True),
-    ("Dead link -- HTTP 404 on docs.python.org (fee must be refunded)",
+    ("Dead link -- HTTP 404 on docs.python.org (80% refund, 20% retained)",
      "https://docs.python.org/3/evidencenotary-nonexistent-page-404.html", False),
 ]
 
@@ -121,20 +121,25 @@ def main() -> None:
         print(f"   tx {tx_hash}\n   consensus {cons['result']}  votes {cons['tally']}  exec {cons['execution']}")
         if expect_ok:
             att = view("get_latest_attestation", url)
-            assert view("verify_attestation", att["attestation_id"], att["content_hash"]) is True
+            assert view("verify_attestation", att["attestation_id"], att["normalized_sha256"]) is True
             entry["outcome"] = "ATTESTED"
             entry["attestation"] = att
-            print(f"   ATTESTED id={att['attestation_id']} sha256={att['content_hash']}\n   title: {att['title']}")
+            print(f"   ATTESTED id={att['attestation_id']} kind={att['content_kind']} size={att['size_bytes']}"
+                  f"\n   raw        {att['raw_sha256']}\n   normalized {att['normalized_sha256']}\n   title: {att['title']}")
             assert int(after["attestation_count"]) == int(before["attestation_count"]) + 1
             assert int(after["protocol_vault"]) == int(before["protocol_vault"]) + ch.FEE
+            entry["hashes"] = {"raw_sha256": att["raw_sha256"], "normalized_sha256": att["normalized_sha256"],
+                               "content_kind": att["content_kind"], "size_bytes": att["size_bytes"]}
+            assert view("verify_attestation", att["attestation_id"], att["raw_sha256"]) is True
         else:
             credits_after = int(view("claimable_of", me))
             entry["outcome"] = (returned or {}).get("status", "REFUNDED") if isinstance(returned, dict) else "REFUNDED"
             entry["refund"] = {"claimable_before": str(credits_before), "claimable_after": str(credits_after)}
             print(f"   refunded -> claimable {credits_before} -> {credits_after}  returned={returned}")
-            assert credits_after == credits_before + ch.FEE
+            entry["penalty_retained"] = str(ch.PENALTY)
+            assert credits_after == credits_before + ch.REFUND  # 80% refundable
             assert after["attestation_count"] == before["attestation_count"]
-            assert after["protocol_vault"] == before["protocol_vault"]
+            assert int(after["protocol_vault"]) == int(before["protocol_vault"]) + ch.PENALTY  # 20% kept
         proofs.append(entry)
 
     # Pull the refund back out, then sweep the vault; solvency re-checked each time.

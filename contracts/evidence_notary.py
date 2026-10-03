@@ -1,7 +1,8 @@
 # v0.1.0
 # { "Depends": "py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng" }
 
-# EvidenceNotary -- Consensus Web Attestation Protocol.
+# EvidenceNotary -- Consensus Web Attestation Protocol (revision 2: dual hashing).
+# NOTE: line 1 is the GenVM version tag, not this contract's revision; leave it.
 #
 # A decentralized web notarization / proof-of-existence protocol. Anyone (an EOA
 # or another contract) pays an exact anti-spam fee and asks the validator set to
@@ -10,10 +11,18 @@
 # the remaining prose into a canonical form and hashes it with SHA-256. The
 # attestation is recorded only if the validators agree on that hash.
 #
+# Two hashes are recorded per attestation. `raw_sha256` covers the exact bytes the
+# validator received; `normalized_sha256` covers the canonical visible text of an
+# HTML / text document. For binary media (PDF, images, archives ...) the body is
+# never decoded and both hashes are the raw hash, so no byte-collision can hide
+# behind a lossy text decode. Nothing is silently truncated: a body over
+# MAX_PAYLOAD_BYTES reverts with ERR_PAYLOAD_TOO_LARGE.
+#
 # Failure path: a dead / 4xx / 5xx page does NOT revert. A revert would roll the
 # fee transfer back to the caller's wallet but leave no on-chain trace; the
 # protocol instead returns a typed status (UNREACHABLE / AMBIGUOUS_VOID) and
-# moves the fee into `claimable_credits`, a pull-pattern refund the payer
+# keeps a non-refundable 20% validator-bandwidth fee in `protocol_vault` and moves
+# the remaining 80% into `claimable_credits`, a pull-pattern refund the payer
 # collects with `pull_withdraw()`. Configuration errors (bad URL, wrong fee) do
 # revert, which returns the attached value to the sender at the VM level.
 #
@@ -46,10 +55,14 @@ allow_storage = gl.storage.allow
 
 # --- Protocol constants -------------------------------------------------------
 ATTESTATION_FEE = 50_000_000_000_000_000  # 0.05 GEN, in atto-GEN
+FAILED_FEE_RETAINED = ATTESTATION_FEE // 5  # 20% = 0.01 GEN stays in the vault
+FAILED_FEE_REFUNDED = ATTESTATION_FEE - FAILED_FEE_RETAINED  # 80% = 0.04 GEN
 SNIPPET_CHARS = 200
 MAX_URL_CHARS = 2048
-MAX_BODY_CHARS = 4_000_000  # bound on the raw document a validator will process
-MIN_TEXT_CHARS = 40  # below this the page carries no notarizable document
+# Hard cap on the raw response body. 4 MiB, not 2 MiB: the RFC 9000 page this
+# protocol is expected to notarize is ~3.0 MB of HTML. Over the cap -> revert.
+MAX_PAYLOAD_BYTES = 4 * 1024 * 1024
+MIN_TEXT_CHARS = 40  # below this an HTML/text page carries no notarizable document
 
 # --- Error classification -----------------------------------------------------
 ERR_URL = "[EXPECTED] ERR_INVALID_URL"
@@ -58,11 +71,13 @@ ERR_NOT_FOUND = "[EXPECTED] ERR_NOT_FOUND"
 ERR_UNAUTHORIZED = "[EXPECTED] ERR_UNAUTHORIZED"
 ERR_NOTHING = "[EXPECTED] ERR_NOTHING_TO_WITHDRAW"
 ERR_TRANSFER = "[EXPECTED] ERR_TRANSFER_FAILED"
+ERR_TOO_LARGE = "[EXPECTED] ERR_PAYLOAD_TOO_LARGE"
 
 # --- Attestation outcomes -----------------------------------------------------
 STATUS_ATTESTED = "ATTESTED"
 STATUS_UNREACHABLE = "UNREACHABLE"  # transport failure, timeout, HTTP 5xx / 429
 STATUS_AMBIGUOUS_VOID = "AMBIGUOUS_VOID"  # HTTP 4xx, empty or non-document page
+STATUS_TOO_LARGE = "PAYLOAD_TOO_LARGE"  # raw body over MAX_PAYLOAD_BYTES (reverts)
 
 
 # ------------------------------------------------------------------------------
@@ -199,74 +214,57 @@ def canonicalize_url(url) -> str:
 # ------------------------------------------------------------------------------
 # Deterministic document extraction (pure, no network)
 # ------------------------------------------------------------------------------
-_DROP_TAGS = frozenset((
-    "script", "style", "noscript", "template", "svg", "canvas", "iframe",
-    "object", "embed", "form", "button", "select", "input", "textarea",
-    "nav", "header", "footer", "aside", "menu", "dialog", "head",
-))
+# Only strictly non-renderable tags are dropped. Navigation, footers, banners,
+# asides and anything selected by class / id stay in the text: a notary must not
+# decide which clauses, prices or warranties are "boilerplate".
+_DROP_TAGS = frozenset(("script", "style", "noscript", "svg", "canvas"))
 _VOID_TAGS = frozenset((
     "area", "base", "br", "col", "embed", "hr", "img", "input", "link",
     "meta", "param", "source", "track", "wbr",
 ))
-_CHROME_ATTR_RE = re.compile(
-    r"(cookie|consent|gdpr|banner|advert|(^|[-_ ])ads?([-_ ]|$)|adsbygoogle|"
-    r"sponsor|promo|popup|modal|newsletter|subscribe|sidebar|breadcrumb|"
-    r"navbar|navigation|menu|skip-link|social|share)",
-    re.IGNORECASE,
-)
 _BLOCK_TAGS = frozenset((
     "p", "div", "section", "article", "main", "li", "ul", "ol", "dl", "dt",
-    "dd", "tr", "table", "pre", "blockquote", "h1", "h2", "h3", "h4", "h5",
-    "h6", "br", "hr", "figure", "figcaption", "details", "summary",
+    "dd", "tr", "td", "th", "table", "pre", "blockquote", "h1", "h2", "h3",
+    "h4", "h5", "h6", "br", "hr", "figure", "figcaption", "details",
+    "summary", "nav", "header", "footer", "aside", "form", "label", "option",
 ))
 
 
 class _DocExtractor(HTMLParser):
-    """Collects the visible prose of the document body, skipping chrome.
-
-    Two passes are made by the caller: if the page declares <article> or
-    <main>, only text inside those landmarks is kept; otherwise all
-    non-chrome body text is kept."""
+    """Collects every rendered text node of the document, in document order."""
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.title_parts = []
         self.in_title = False
+        self.in_head = False
         self.skip_depth = 0
         self.skip_stack = []
-        self.landmark_depth = 0
-        self.all_chunks = []
-        self.landmark_chunks = []
+        self.chunks = []
 
     def handle_starttag(self, tag, attrs):
         if tag == "title":
             self.in_title = True
+        elif tag == "head":
+            self.in_head = True
+        elif tag == "body":
+            self.in_head = False
         if tag in _VOID_TAGS:
             if tag in _BLOCK_TAGS:
-                self._brk()
+                self.chunks.append(" ")
             return
-        chrome = tag in _DROP_TAGS
-        if not chrome and tag not in ("html", "body", "article", "main"):
-            for k, v in attrs:
-                if k in ("class", "id", "role", "aria-label") and v:
-                    if _CHROME_ATTR_RE.search(v) or v.lower() in ("navigation", "banner", "contentinfo", "complementary", "search"):
-                        chrome = True
-                        break
-                if k == "hidden" or (k == "aria-hidden" and v == "true"):
-                    chrome = True
-                    break
-        if self.skip_depth > 0 or chrome:
+        if self.skip_depth > 0 or tag in _DROP_TAGS:
             self.skip_stack.append(tag)
             self.skip_depth += 1
             return
-        if tag in ("article", "main"):
-            self.landmark_depth += 1
         if tag in _BLOCK_TAGS:
-            self._brk()
+            self.chunks.append(" ")
 
     def handle_endtag(self, tag):
         if tag == "title":
             self.in_title = False
+        elif tag == "head":
+            self.in_head = False
         if tag in _VOID_TAGS:
             return
         if self.skip_depth > 0:
@@ -278,25 +276,16 @@ class _DocExtractor(HTMLParser):
                     if top == tag:
                         break
             return
-        if tag in ("article", "main") and self.landmark_depth > 0:
-            self.landmark_depth -= 1
         if tag in _BLOCK_TAGS:
-            self._brk()
-
-    def _brk(self):
-        self.all_chunks.append(" ")
-        if self.landmark_depth > 0:
-            self.landmark_chunks.append(" ")
+            self.chunks.append(" ")
 
     def handle_data(self, data):
         if self.in_title:
             self.title_parts.append(data)
             return
-        if self.skip_depth > 0:
+        if self.skip_depth > 0 or self.in_head:
             return
-        self.all_chunks.append(data)
-        if self.landmark_depth > 0:
-            self.landmark_chunks.append(data)
+        self.chunks.append(data)
 
 
 def normalize_text(text: str) -> str:
@@ -304,9 +293,9 @@ def normalize_text(text: str) -> str:
     control characters removed, runs of whitespace folded to one space."""
     t = unicodedata.normalize("NFKC", text)
     t = (
-        t.replace("‘", "'").replace("’", "'")
-        .replace("“", '"').replace("”", '"')
-        .replace("–", "-").replace("—", "-").replace("−", "-")
+        t.replace("\u2018", "'").replace("\u2019", "'")
+        .replace("\u201c", '"').replace("\u201d", '"')
+        .replace("\u2013", "-").replace("\u2014", "-").replace("\u2212", "-")
     )
     out = []
     for ch in t:
@@ -322,29 +311,26 @@ def normalize_text(text: str) -> str:
     return " ".join("".join(out).split())
 
 
-def extract_document(body: str) -> dict:
-    """Returns {"title", "text"}: the normalized title and article text."""
-    if len(body) > MAX_BODY_CHARS:
-        body = body[:MAX_BODY_CHARS]
-    head = body[:2048].lstrip().lower()
-    looks_html = "<html" in head or "<!doctype html" in head or "<body" in body[:20000].lower() or "<title" in body[:20000].lower()
-    if not looks_html:
-        return {"title": "", "text": normalize_text(body)}
+def extract_html(body: str) -> dict:
+    """Returns {"title", "text"}: normalized title and all rendered body text."""
     p = _DocExtractor()
     try:
         p.feed(body)
         p.close()
     except Exception:
         pass  # the parser is tolerant; whatever was collected so far is used
-    chunks = p.landmark_chunks if normalize_text("".join(p.landmark_chunks)) != "" else p.all_chunks
     return {
         "title": normalize_text("".join(p.title_parts)),
-        "text": normalize_text("".join(chunks)),
+        "text": normalize_text("".join(p.chunks)),
     }
 
 
+def sha256_hex(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
 def content_hash_of(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return sha256_hex(text.encode("utf-8"))
 
 
 def _norm_hash(h) -> str:
@@ -356,14 +342,59 @@ def _norm_hash(h) -> str:
     return s
 
 
+_HTML_TYPES = ("text/html", "application/xhtml+xml")
+_TEXT_TYPES = ("application/json", "application/xml", "application/ld+json", "application/javascript")
+
+
+def _content_type(headers) -> str:
+    """Lowercased media type without parameters, "" if absent."""
+    try:
+        for k, v in headers.items():
+            name = k.decode("latin-1") if isinstance(k, (bytes, bytearray)) else str(k)
+            if name.lower() == "content-type":
+                val = v.decode("latin-1") if isinstance(v, (bytes, bytearray)) else str(v)
+                return val.split(";", 1)[0].strip().lower()
+    except Exception:
+        pass
+    return ""
+
+
+def classify_content(ctype: str, body: bytes) -> str:
+    """"html", "text" or "binary". Binary bodies are never text-decoded."""
+    if ctype in _HTML_TYPES:
+        return "html"
+    if ctype.startswith("text/") or ctype in _TEXT_TYPES or (
+        ctype.endswith("+json") or (ctype.endswith("+xml") and ctype != "image/svg+xml")
+    ):
+        # a declared text type whose bytes are not valid UTF-8 is not safely text
+        try:
+            body.decode("utf-8")
+        except UnicodeDecodeError:
+            return "binary"
+        return "text"
+    if ctype != "":
+        return "binary"
+    # No Content-Type: sniff. Valid UTF-8 is text (html if it looks like it).
+    try:
+        text = body.decode("utf-8")
+    except UnicodeDecodeError:
+        return "binary"
+    if "\x00" in text[:1024]:
+        return "binary"
+    head = text[:20000].lower()
+    if "<html" in head or "<!doctype html" in head or "<body" in head or "<title" in head:
+        return "html"
+    return "text"
+
+
 # ------------------------------------------------------------------------------
 # Web read (runs inside the non-deterministic block on every validator)
 # ------------------------------------------------------------------------------
 def _read_page(canonical_url: str) -> dict:
     """Never raises. Returns a primitive-only dict so it is calldata-encodable:
-    {"ok": bool, "code": str, "hash": str, "title": str, "snippet": str}."""
+    {"ok", "code", "kind", "raw", "norm", "title", "snippet", "size"}."""
     def fail(code):
-        return {"ok": False, "code": code, "hash": "", "title": "", "snippet": ""}
+        return {"ok": False, "code": code, "kind": "", "raw": "", "norm": "", "title": "", "snippet": "", "size": 0}
 
     try:
         res = gl.nondet.web.get(canonical_url)
@@ -381,33 +412,65 @@ def _read_page(canonical_url: str) -> dict:
     body = res.body
     if body is None:
         return fail(STATUS_AMBIGUOUS_VOID)
-    if isinstance(body, (bytes, bytearray)):
-        body = bytes(body).decode("utf-8", errors="replace")
-    elif not isinstance(body, str):
+    if isinstance(body, str):
+        body = body.encode("utf-8")
+    elif isinstance(body, (bytes, bytearray)):
+        body = bytes(body)
+    else:
         return fail(STATUS_AMBIGUOUS_VOID)
-    doc = extract_document(body)
+    if len(body) > MAX_PAYLOAD_BYTES:
+        return fail(STATUS_TOO_LARGE)
+    if len(body) == 0:
+        return fail(STATUS_AMBIGUOUS_VOID)
+
+    raw = sha256_hex(body)
+    kind = classify_content(_content_type(getattr(res, "headers", None) or {}), body)
+    if kind == "binary":
+        # No decoding of any kind: both hashes are the hash of the exact bytes.
+        return {"ok": True, "code": STATUS_ATTESTED, "kind": kind, "raw": raw, "norm": raw,
+                "title": "", "snippet": "", "size": len(body)}
+    decoded = body.decode("utf-8", errors="replace")
+    if kind == "html":
+        doc = extract_html(decoded)
+    else:
+        doc = {"title": "", "text": normalize_text(decoded)}
     text = doc["text"]
     if len(text) < MIN_TEXT_CHARS:
         return fail(STATUS_AMBIGUOUS_VOID)
     return {
         "ok": True,
         "code": STATUS_ATTESTED,
-        "hash": content_hash_of(text),
+        "kind": kind,
+        "raw": raw,
+        "norm": content_hash_of(text),
         "title": doc["title"][:300],
         "snippet": text[:SNIPPET_CHARS],
+        "size": len(body),
     }
 
 
 def _read_equivalent(leader: dict, mine: dict) -> bool:
-    """Validator agreement predicate. Successful reads must agree on the content
-    hash and title exactly; failed reads must agree on the failure class."""
+    """Validator agreement predicate.
+
+    Successful reads must agree on content kind, the normalized hash and the
+    title; binary reads must additionally agree on the raw hash (it is their
+    only hash). For HTML / text the raw hash is the leader's own measurement:
+    live markup carries per-request tokens, so validators vouch for the
+    normalized text, not for byte-identical markup. Failed reads must agree on
+    the failure class."""
     if not isinstance(leader, dict) or "ok" not in leader:
         return False
     if leader["ok"] != mine["ok"]:
         return False
-    if mine["ok"]:
-        return leader.get("hash") == mine["hash"] and leader.get("title") == mine["title"]
-    return leader.get("code") == mine["code"]
+    if not mine["ok"]:
+        return leader.get("code") == mine["code"]
+    if leader.get("kind") != mine["kind"]:
+        return False
+    if leader.get("norm") != mine["norm"] or leader.get("title") != mine["title"]:
+        return False
+    if mine["kind"] == "binary" and leader.get("raw") != mine["raw"]:
+        return False
+    return True
 
 
 @allow_storage
@@ -415,7 +478,10 @@ def _read_equivalent(leader: dict, mine: dict) -> bool:
 class Attestation:
     attestation_id: u256
     canonical_url: str
-    content_hash: str  # hex SHA-256 of the normalized document text
+    raw_sha256: str  # hex SHA-256 of the exact response bytes
+    normalized_sha256: str  # hex SHA-256 of the normalized text (== raw for binary)
+    content_kind: str  # "html" | "text" | "binary"
+    size_bytes: u256  # length of the raw response body
     title: str
     text_snippet: str  # first 200 characters of the verified text
     timestamp: u256  # block timestamp, unix seconds
@@ -446,6 +512,15 @@ class EvidenceNotary(gl.contract.Contract):
     @gl.public.view
     def get_fee(self) -> u256:
         return ATTESTATION_FEE
+
+    @gl.public.view
+    def get_limits(self) -> dict:
+        return {
+            "fee": str(ATTESTATION_FEE),
+            "failed_fee_retained": str(FAILED_FEE_RETAINED),
+            "failed_fee_refunded": str(FAILED_FEE_REFUNDED),
+            "max_payload_bytes": MAX_PAYLOAD_BYTES,
+        }
 
     @gl.public.view
     def get_governor(self) -> str:
@@ -499,18 +574,26 @@ class EvidenceNotary(gl.contract.Contract):
 
     @gl.public.view
     def verify_attestation(self, attestation_id: u256, expected_hash: str) -> bool:
-        """True iff attestation exists and its content hash equals `expected_hash`
-        (hex SHA-256; a `0x` prefix and letter case are not significant)."""
+        """True iff the attestation exists and `expected_hash` equals its
+        `normalized_sha256` or its `raw_sha256` (hex SHA-256; a `0x` prefix and
+        letter case are not significant). For binary media both are the raw hash.
+        This is the integration primitive: pin an `attestation_id`, then verify."""
         if attestation_id not in self.attestations:
             return False
         want = _norm_hash(expected_hash)
         if len(want) != 64:
             return False
-        return self.attestations[attestation_id].content_hash == want
+        a = self.attestations[attestation_id]
+        return want == a.normalized_sha256 or want == a.raw_sha256
 
     @gl.public.view
     def get_latest_attestation(self, url: str) -> dict:
-        """Latest attestation of `url` (canonicalized first). For other contracts."""
+        """Latest attestation of `url` (canonicalized first).
+
+        INFORMATIONAL ONLY. `latest` is an append-only index that ANYONE can
+        advance by paying the fee and attesting the same URL, so it must never
+        gate escrow release or any condition check. Pin an attestation_id and
+        use verify_attestation instead."""
         try:
             canon = canonicalize_url(url)
         except UrlRejected as e:
@@ -525,15 +608,16 @@ class EvidenceNotary(gl.contract.Contract):
         """Notarize `url`. Requires exactly ATTESTATION_FEE attached.
 
         Returns {"status", "attestation_id", ...}. status is ATTESTED on
-        consensus, otherwise UNREACHABLE / AMBIGUOUS_VOID with the fee moved to
-        the caller's claimable credits (nothing is recorded, nothing is lost)."""
+        consensus. Otherwise (UNREACHABLE / AMBIGUOUS_VOID) nothing is recorded,
+        20% of the fee (FAILED_FEE_RETAINED) stays in the vault as non-refundable
+        validator bandwidth and 80% moves to the caller's claimable credits. A body
+        over MAX_PAYLOAD_BYTES reverts with ERR_PAYLOAD_TOO_LARGE (full value back)."""
         if gl.message.value != ATTESTATION_FEE:
             raise gl.vm.UserError(f"{ERR_FEE} expected {ATTESTATION_FEE}")
         try:
             canon = canonicalize_url(url)
         except UrlRejected as e:
             raise gl.vm.UserError(f"{ERR_URL} {e}")
-        self.total_received += ATTESTATION_FEE
 
         def leader_fn():
             return _read_page(canon)
@@ -546,14 +630,21 @@ class EvidenceNotary(gl.contract.Contract):
 
         result = gl.vm.run_nondet(leader_fn, validator_fn)
 
+        if not result["ok"] and result["code"] == STATUS_TOO_LARGE:
+            raise gl.vm.UserError(f"{ERR_TOO_LARGE} limit {MAX_PAYLOAD_BYTES} bytes")
+
+        # No revert is possible past this point, so state is mutated only here.
+        self.total_received += ATTESTATION_FEE
         sender = self._key(gl.message.sender_address)
         if not result["ok"]:
-            self._credit(sender, ATTESTATION_FEE)
+            self.protocol_vault += FAILED_FEE_RETAINED
+            self._credit(sender, FAILED_FEE_REFUNDED)
             return {
                 "status": result["code"],
                 "attestation_id": 0,
                 "canonical_url": canon,
-                "refunded": str(ATTESTATION_FEE),
+                "retained": str(FAILED_FEE_RETAINED),
+                "refunded": str(FAILED_FEE_REFUNDED),
             }
 
         att_id = self.attestation_count + 1
@@ -561,7 +652,10 @@ class EvidenceNotary(gl.contract.Contract):
         self.attestations[att_id] = Attestation(
             attestation_id=att_id,
             canonical_url=canon,
-            content_hash=result["hash"],
+            raw_sha256=result["raw"],
+            normalized_sha256=result["norm"],
+            content_kind=result["kind"],
+            size_bytes=result["size"],
             title=result["title"],
             text_snippet=result["snippet"],
             timestamp=self._now(),
@@ -574,8 +668,11 @@ class EvidenceNotary(gl.contract.Contract):
             "status": STATUS_ATTESTED,
             "attestation_id": int(att_id),
             "canonical_url": canon,
-            "content_hash": result["hash"],
+            "raw_sha256": result["raw"],
+            "normalized_sha256": result["norm"],
+            "content_kind": result["kind"],
             "title": result["title"],
+            "retained": str(ATTESTATION_FEE),
             "refunded": "0",
         }
 
@@ -645,7 +742,10 @@ class EvidenceNotary(gl.contract.Contract):
         return {
             "attestation_id": int(a.attestation_id),
             "canonical_url": a.canonical_url,
-            "content_hash": a.content_hash,
+            "raw_sha256": a.raw_sha256,
+            "normalized_sha256": a.normalized_sha256,
+            "content_kind": a.content_kind,
+            "size_bytes": int(a.size_bytes),
             "title": a.title,
             "text_snippet": a.text_snippet,
             "timestamp": int(a.timestamp),

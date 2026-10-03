@@ -2,37 +2,36 @@
   "network": "studio-next",
   "chain_id": 61997,
   "rpc_url": "https://studio-next.genlayer.com/api",
-  "contract_address": "0xfE5667cB007ed15678C3E85B43d1176EE18623e3",
-  "explorer_url": "https://explorer-studio-next.genlayer.com/address/0xfE5667cB007ed15678C3E85B43d1176EE18623e3",
+  "contract_address": "0xF19334F29551A9df11C2e596c5517c35d232db0e",
+  "explorer_url": "https://explorer-studio-next.genlayer.com/address/0xF19334F29551A9df11C2e596c5517c35d232db0e",
   "source": "contracts/evidence_notary.py",
   "runner": "5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng",
-  "source_sha256": "cd42f2588b9d7a63bdbed207c19a035eb49fe841a665929a152ace5972af87a3",
+  "source_sha256": "3485e80360272538e1322e75554f6b14f5ff1c969fb49e02ee7d0768ea3e17c1",
   "deployer_and_governor": "0x79D0B199047e568B39D8c422B66c693A7F9414b1",
-  "deploy_tx": "0x40a022b26de2aab4a0cca687e704e37aa5c2c373170e19316e9279512e633295",
+  "deploy_tx": "0xf4d3c496eca53665a53cfceec43dbb734aec512f3650802a3e6c5cafd569acab",
   "deploy_status": "FINISHED_WITH_RETURN",
   "deploy_consensus": "MAJORITY_AGREE",
-  "deployed_at": "2026-10-03T16:03:36+00:00",
+  "deployed_at": "2026-10-03T16:29:52+00:00",
   "attestation_fee_atto": 50000000000000000,
   "live_proofs": [
     {
       "case": "RFC 9000 -- QUIC transport specification",
       "url": "https://rfc-editor.org/rfc/rfc9000",
-      "tx_hash": "0x58d3578ba75309443f91f5b4020bb859e0c58a740502103665bcd5a59d59a679",
+      "tx_hash": "0x69a45acb80c8f8f81de827e493005acb10d6aacc780883056515a4e944911b07",
       "consensus": {
         "result": "MAJORITY_AGREE",
         "state_hashes": {
-          "leader": "53dc6639c8f2ed14ee9ea3263e075b62feaaff087e20131b9335d45e7892e0f6",
-          "validator_1_validator_agree": "53dc6639c8f2ed14ee9ea3263e075b62feaaff087e20131b9335d45e7892e0f6",
-          "validator_2_validator_agree": "53dc6639c8f2ed14ee9ea3263e075b62feaaff087e20131b9335d45e7892e0f6",
-          "validator_3_validator_agree": "53dc6639c8f2ed14ee9ea3263e075b62feaaff087e20131b9335d45e7892e0f6"
+          "leader": "ac20e947869ef31d89374c339781adfabdc6975fdb3172a317f7b79917f8a89c",
+          "validator_0_validator_agree": "ac20e947869ef31d89374c339781adfabdc6975fdb3172a317f7b79917f8a89c",
+          "validator_2_validator_agree": "ac20e947869ef31d89374c339781adfabdc6975fdb3172a317f7b79917f8a89c"
         },
         "execution": "FINISHED_WITH_RETURN",
         "votes": {
-          "0x5cDf4BdDeEDa0e32ED596b94f69AcC0FbB57f264": "agree",
-          "0x6760cDeC573cf38568C59872ee48B6fED41F8A4c": "agree",
-          "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "idle",
-          "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "idle",
-          "0xf13c3DfE38C8E206C33F750C24a1b043b63Cb810": "agree"
+          "0x1dA3a7de8EA65A318bf88Eb63d3dC55295Dd257E": "agree",
+          "0x8D32eb5D0207f7E230C45e7BF0D14B2ED5DA3028": "idle",
+          "0xa0435f618c1F27B254998018AEa8Da5C77187852": "agree",
+          "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "agree",
+          "0xcbC79F96B7A275b23EE64d80a98325107F6E1b77": "idle"
         },
         "tally": {
           "agree": 3,
@@ -43,8 +42,11 @@
       "returned": {
         "attestation_id": 1,
         "canonical_url": "https://rfc-editor.org/rfc/rfc9000",
-        "content_hash": "9d82d6b01a17ffd3a01900602db6e0dd137c1f49b90343df30f58e1b5ada3fa4",
+        "content_kind": "html",
+        "normalized_sha256": "9307a8e848afd9d2cb79b10bee068f2ed76b7ece40ee9f42f518554b2cf7b637",
+        "raw_sha256": "77e1e7dfc23a88f959f2189af224630a18fc1f5a08ce2f8480bca420af3d75e3",
         "refunded": "0",
+        "retained": "50000000000000000",
         "status": "ATTESTED",
         "title": "RFC 9000: QUIC: A UDP-Based Multiplexed and Secure Transport | RFC EditorExpand sidebar"
       },
@@ -69,50 +71,62 @@
         "total_received": "50000000000000000",
         "balance_drift": "0"
       },
-      "block_time_utc": "2026-10-03T16:04:08+00:00",
+      "block_time_utc": "2026-10-03T16:30:25+00:00",
       "outcome": "ATTESTED",
       "attestation": {
         "attestation_id": 1,
         "attester": "0x79d0b199047e568b39d8c422b66c693a7f9414b1",
         "canonical_url": "https://rfc-editor.org/rfc/rfc9000",
-        "content_hash": "9d82d6b01a17ffd3a01900602db6e0dd137c1f49b90343df30f58e1b5ada3fa4",
+        "content_kind": "html",
         "fee_paid": "50000000000000000",
-        "text_snippet": "RFC 9000: QUIC: A UDP-Based Multiplexed and Secure Transport QUIC UDP J. Iyengar, Ed., M. Thomson, Ed. Proposed Standard Added to 1 Set Abstract This document defines the core of the QUIC transport pr",
-        "timestamp": 1791043431,
+        "normalized_sha256": "9307a8e848afd9d2cb79b10bee068f2ed76b7ece40ee9f42f518554b2cf7b637",
+        "raw_sha256": "77e1e7dfc23a88f959f2189af224630a18fc1f5a08ce2f8480bca420af3d75e3",
+        "size_bytes": 2989622,
+        "text_snippet": "Skip to content Primary navigation The RFC Series For Authors About Us Home RFC 9000 Info RFC 9000: QUIC: A UDP-Based Multiplexed and Secure Transport QUIC UDP J. Iyengar, Ed., M. Thomson, Ed. Propose",
+        "timestamp": 1791045008,
         "title": "RFC 9000: QUIC: A UDP-Based Multiplexed and Secure Transport | RFC EditorExpand sidebar"
+      },
+      "hashes": {
+        "raw_sha256": "77e1e7dfc23a88f959f2189af224630a18fc1f5a08ce2f8480bca420af3d75e3",
+        "normalized_sha256": "9307a8e848afd9d2cb79b10bee068f2ed76b7ece40ee9f42f518554b2cf7b637",
+        "content_kind": "html",
+        "size_bytes": 2989622
       }
     },
     {
       "case": "Python 3.13 release notes",
       "url": "https://docs.python.org/3/whatsnew/3.13.html",
-      "tx_hash": "0x5e043b3a77f086933eb2cae530be4880f618de196ae6246b862902140e1eec77",
+      "tx_hash": "0xae81df4a637ec14ef86fdc8f289f018e035ff39df7206ec44d599dc9ca53f1ac",
       "consensus": {
         "result": "MAJORITY_AGREE",
         "state_hashes": {
-          "leader": "baebf36878e2db25b17ababb5107ee19ae935a695d24c5af59d35795c2c724be",
-          "validator_0_validator_agree": "baebf36878e2db25b17ababb5107ee19ae935a695d24c5af59d35795c2c724be",
-          "validator_1_validator_agree": "baebf36878e2db25b17ababb5107ee19ae935a695d24c5af59d35795c2c724be",
-          "validator_2_validator_agree": "baebf36878e2db25b17ababb5107ee19ae935a695d24c5af59d35795c2c724be"
+          "leader": "2e3791d7e7541d9a1589e1f186c9fd26b58a19f72dbf99d8aa5f40583b2631b2",
+          "validator_0_validator_agree": "2e3791d7e7541d9a1589e1f186c9fd26b58a19f72dbf99d8aa5f40583b2631b2",
+          "validator_2_validator_agree": "2e3791d7e7541d9a1589e1f186c9fd26b58a19f72dbf99d8aa5f40583b2631b2",
+          "validator_3_validator_agree": "2e3791d7e7541d9a1589e1f186c9fd26b58a19f72dbf99d8aa5f40583b2631b2"
         },
         "execution": "FINISHED_WITH_RETURN",
         "votes": {
-          "0x05d8aFc66B515038712537f99cAAEA73d16f0007": "idle",
+          "0x05d8aFc66B515038712537f99cAAEA73d16f0007": "agree",
+          "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "idle",
           "0x8D32eb5D0207f7E230C45e7BF0D14B2ED5DA3028": "agree",
-          "0xEEcEC5D1E07Ee40f5cb85aF922178Dc01278013C": "agree",
-          "0xa0435f618c1F27B254998018AEa8Da5C77187852": "agree",
-          "0xcF5Fd792Df0Dc9d297af75c82B4A0011e8FA1A4A": "idle"
+          "0xa0435f618c1F27B254998018AEa8Da5C77187852": "idle",
+          "0xf13c3DfE38C8E206C33F750C24a1b043b63Cb810": "agree"
         },
         "tally": {
-          "idle": 2,
-          "agree": 3
+          "agree": 3,
+          "idle": 2
         },
         "tx_execution_hash": ""
       },
       "returned": {
         "attestation_id": 2,
         "canonical_url": "https://docs.python.org/3/whatsnew/3.13.html",
-        "content_hash": "78b64dae28463b310cb4828a376be43c068d40538590f7fbb0acf71e0a87efdc",
+        "content_kind": "html",
+        "normalized_sha256": "b19690d381e9c84a7e926f0f5f5b9559b0690627c90f970032ea9da949494143",
+        "raw_sha256": "7206ee86ff777e1a0fe4b318fc32f4608972d86068cfe3e8f3458cb2807735c5",
         "refunded": "0",
+        "retained": "50000000000000000",
         "status": "ATTESTED",
         "title": "What's New In Python 3.13 - Python 3.14.8 documentation"
       },
@@ -137,37 +151,46 @@
         "total_received": "100000000000000000",
         "balance_drift": "0"
       },
-      "block_time_utc": "2026-10-03T16:04:34+00:00",
+      "block_time_utc": "2026-10-03T16:30:49+00:00",
       "outcome": "ATTESTED",
       "attestation": {
         "attestation_id": 2,
         "attester": "0x79d0b199047e568b39d8c422b66c693a7f9414b1",
         "canonical_url": "https://docs.python.org/3/whatsnew/3.13.html",
-        "content_hash": "78b64dae28463b310cb4828a376be43c068d40538590f7fbb0acf71e0a87efdc",
+        "content_kind": "html",
         "fee_paid": "50000000000000000",
-        "text_snippet": "What's New In Python 3.13\u00b6 Editors: Adam Turner and Thomas Wouters This article explains the new features in Python 3.13, compared to 3.12. Python 3.13 was released on October 7, 2024. For full detail",
-        "timestamp": 1791043460,
+        "normalized_sha256": "b19690d381e9c84a7e926f0f5f5b9559b0690627c90f970032ea9da949494143",
+        "raw_sha256": "7206ee86ff777e1a0fe4b318fc32f4608972d86068cfe3e8f3458cb2807735c5",
+        "size_bytes": 492386,
+        "text_snippet": "Theme Auto Light Dark Table of Contents What's New In Python 3.13 Summary - Release Highlights New Features A better interactive interpreter Improved error messages Free-threaded CPython An experiment",
+        "timestamp": 1791045037,
         "title": "What's New In Python 3.13 - Python 3.14.8 documentation"
+      },
+      "hashes": {
+        "raw_sha256": "7206ee86ff777e1a0fe4b318fc32f4608972d86068cfe3e8f3458cb2807735c5",
+        "normalized_sha256": "b19690d381e9c84a7e926f0f5f5b9559b0690627c90f970032ea9da949494143",
+        "content_kind": "html",
+        "size_bytes": 492386
       }
     },
     {
       "case": "W3C Decentralized Identifiers (DID Core)",
       "url": "https://w3.org/TR/did-core/",
-      "tx_hash": "0x7d9561dfd9e5027607084e13ba3123a787b6c9bf342f69af4f0eafc3c1402266",
+      "tx_hash": "0x9a4c91693e3da54145b237ca70f71a055af0cb8b0465e640c5c84b27af6808b0",
       "consensus": {
         "result": "MAJORITY_AGREE",
         "state_hashes": {
-          "leader": "8353a3d60bc92400cb9623f0791e3d2eaace443b9eeb5df0945301d3111561c3",
-          "validator_0_validator_agree": "8353a3d60bc92400cb9623f0791e3d2eaace443b9eeb5df0945301d3111561c3",
-          "validator_2_validator_agree": "8353a3d60bc92400cb9623f0791e3d2eaace443b9eeb5df0945301d3111561c3"
+          "leader": "48f142c19baa623c74ab1a83cc97c909931ab4ed03e474c7cbff050ab8541a9a",
+          "validator_0_validator_agree": "48f142c19baa623c74ab1a83cc97c909931ab4ed03e474c7cbff050ab8541a9a",
+          "validator_2_validator_agree": "48f142c19baa623c74ab1a83cc97c909931ab4ed03e474c7cbff050ab8541a9a"
         },
         "execution": "FINISHED_WITH_RETURN",
         "votes": {
-          "0x5cDf4BdDeEDa0e32ED596b94f69AcC0FbB57f264": "agree",
-          "0x6760cDeC573cf38568C59872ee48B6fED41F8A4c": "agree",
-          "0xE52dDB85587585930b1E5f1Fe88fef21CcA49829": "agree",
+          "0x5A4230B920b18c4AFD3A28F99Eae669B7F2cdC1e": "agree",
+          "0x5cDf4BdDeEDa0e32ED596b94f69AcC0FbB57f264": "idle",
+          "0xE4E106086F167D75E2270fa5f3680f6ac598d179": "agree",
           "0xEEcEC5D1E07Ee40f5cb85aF922178Dc01278013C": "idle",
-          "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "idle"
+          "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "agree"
         },
         "tally": {
           "agree": 3,
@@ -178,8 +201,11 @@
       "returned": {
         "attestation_id": 3,
         "canonical_url": "https://w3.org/TR/did-core",
-        "content_hash": "2b0a6c2e4a9dd913627d33825e9dfa39c6c2def524875d7f29bdc1fbc11083eb",
+        "content_kind": "html",
+        "normalized_sha256": "62c9cc43f1027cda3af834bc033ef672c2c59737ca15bc9627f7fb2c6e303a7e",
+        "raw_sha256": "5e44345740d9bfaa852d3b66c57e98c9beb6c5bf6083b0126dd5daac377b9993",
         "refunded": "0",
+        "retained": "50000000000000000",
         "status": "ATTESTED",
         "title": "Decentralized Identifiers (DIDs) v1.0"
       },
@@ -204,37 +230,46 @@
         "total_received": "150000000000000000",
         "balance_drift": "0"
       },
-      "block_time_utc": "2026-10-03T16:04:53+00:00",
+      "block_time_utc": "2026-10-03T16:31:14+00:00",
       "outcome": "ATTESTED",
       "attestation": {
         "attestation_id": 3,
         "attester": "0x79d0b199047e568b39d8c422b66c693a7f9414b1",
         "canonical_url": "https://w3.org/TR/did-core",
-        "content_hash": "2b0a6c2e4a9dd913627d33825e9dfa39c6c2def524875d7f29bdc1fbc11083eb",
+        "content_kind": "html",
         "fee_paid": "50000000000000000",
+        "normalized_sha256": "62c9cc43f1027cda3af834bc033ef672c2c59737ca15bc9627f7fb2c6e303a7e",
+        "raw_sha256": "5e44345740d9bfaa852d3b66c57e98c9beb6c5bf6083b0126dd5daac377b9993",
+        "size_bytes": 730300,
         "text_snippet": "Decentralized Identifiers (DIDs) v1.0 Core architecture, data model, and representations W3C Recommendation 19 July 2022 More details about this document This version: https://www.w3.org/TR/2022/REC-d",
-        "timestamp": 1791043484,
+        "timestamp": 1791045061,
         "title": "Decentralized Identifiers (DIDs) v1.0"
+      },
+      "hashes": {
+        "raw_sha256": "5e44345740d9bfaa852d3b66c57e98c9beb6c5bf6083b0126dd5daac377b9993",
+        "normalized_sha256": "62c9cc43f1027cda3af834bc033ef672c2c59737ca15bc9627f7fb2c6e303a7e",
+        "content_kind": "html",
+        "size_bytes": 730300
       }
     },
     {
-      "case": "Dead link -- HTTP 404 on docs.python.org (fee must be refunded)",
+      "case": "Dead link -- HTTP 404 on docs.python.org (80% refund, 20% retained)",
       "url": "https://docs.python.org/3/evidencenotary-nonexistent-page-404.html",
-      "tx_hash": "0x4a98bb7d75a18855ee9a25514fb97c9132f5025097745ee1e70ee84badcec0e0",
+      "tx_hash": "0x8359f2a9df0fbd5d7b595dac7b516e093823490ef576716a0395edc5a300357e",
       "consensus": {
         "result": "MAJORITY_AGREE",
         "state_hashes": {
-          "leader": "43e4c3a85a622337aa93997cd40dee52f6bba87f09d06df2e525269fb5db22b5",
-          "validator_1_validator_agree": "43e4c3a85a622337aa93997cd40dee52f6bba87f09d06df2e525269fb5db22b5",
-          "validator_2_validator_agree": "43e4c3a85a622337aa93997cd40dee52f6bba87f09d06df2e525269fb5db22b5"
+          "leader": "b449573bb7051ffc81fa70350e12041859be19d561f824909ba3072895e1f39a",
+          "validator_0_validator_agree": "b449573bb7051ffc81fa70350e12041859be19d561f824909ba3072895e1f39a",
+          "validator_3_validator_agree": "b449573bb7051ffc81fa70350e12041859be19d561f824909ba3072895e1f39a"
         },
         "execution": "FINISHED_WITH_RETURN",
         "votes": {
-          "0x1dA3a7de8EA65A318bf88Eb63d3dC55295Dd257E": "agree",
-          "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "idle",
-          "0xa0435f618c1F27B254998018AEa8Da5C77187852": "agree",
-          "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "idle",
-          "0xcbC79F96B7A275b23EE64d80a98325107F6E1b77": "agree"
+          "0x05d8aFc66B515038712537f99cAAEA73d16f0007": "agree",
+          "0x5cDf4BdDeEDa0e32ED596b94f69AcC0FbB57f264": "idle",
+          "0x6760cDeC573cf38568C59872ee48B6fED41F8A4c": "idle",
+          "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "agree",
+          "0xf13c3DfE38C8E206C33F750C24a1b043b63Cb810": "agree"
         },
         "tally": {
           "agree": 3,
@@ -245,7 +280,8 @@
       "returned": {
         "attestation_id": 0,
         "canonical_url": "https://docs.python.org/3/evidencenotary-nonexistent-page-404.html",
-        "refunded": "50000000000000000",
+        "refunded": "40000000000000000",
+        "retained": "10000000000000000",
         "status": "AMBIGUOUS_VOID"
       },
       "state_before": {
@@ -262,37 +298,86 @@
         "attestation_count": "3",
         "balance": "200000000000000000",
         "ledger_conserved": true,
-        "protocol_vault": "150000000000000000",
+        "protocol_vault": "160000000000000000",
         "solvent": true,
-        "total_credits": "50000000000000000",
+        "total_credits": "40000000000000000",
         "total_paid_out": "0",
         "total_received": "200000000000000000",
         "balance_drift": "0"
       },
-      "block_time_utc": "2026-10-03T16:05:12+00:00",
+      "block_time_utc": "2026-10-03T16:31:39+00:00",
       "outcome": "AMBIGUOUS_VOID",
       "refund": {
         "claimable_before": "0",
-        "claimable_after": "50000000000000000"
-      }
+        "claimable_after": "40000000000000000"
+      },
+      "penalty_retained": "10000000000000000"
     }
   ],
   "pull_withdraw": {
-    "tx_hash": "0x06a856e1d906fbc564f235bbb20cb12a6da7235a98361066e4539f519dcb1e9b",
+    "tx_hash": "0x636489811d6ab0ee5ad798802b2e868c7faf9f4436323c5885156fd4e7df3000",
     "consensus": {
       "result": "MAJORITY_AGREE",
       "state_hashes": {
-        "leader": "0c08e5ba38cc58b6562fc29d49bcaba439813864e7a38f72cd793b60ea9b191e",
-        "validator_0_validator_agree": "0c08e5ba38cc58b6562fc29d49bcaba439813864e7a38f72cd793b60ea9b191e",
-        "validator_1_validator_agree": "0c08e5ba38cc58b6562fc29d49bcaba439813864e7a38f72cd793b60ea9b191e",
-        "validator_3_validator_agree": "0c08e5ba38cc58b6562fc29d49bcaba439813864e7a38f72cd793b60ea9b191e"
+        "leader": "3d13a78917cc4de8c0a9c719a6c1d2aaa7a5abe0cd36afe62bd24da9355f8379",
+        "validator_0_validator_agree": "3d13a78917cc4de8c0a9c719a6c1d2aaa7a5abe0cd36afe62bd24da9355f8379",
+        "validator_1_validator_agree": "3d13a78917cc4de8c0a9c719a6c1d2aaa7a5abe0cd36afe62bd24da9355f8379"
       },
       "execution": "FINISHED_WITH_RETURN",
       "votes": {
-        "0x1dA3a7de8EA65A318bf88Eb63d3dC55295Dd257E": "agree",
+        "0x5cDf4BdDeEDa0e32ED596b94f69AcC0FbB57f264": "idle",
+        "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "agree",
         "0x8D32eb5D0207f7E230C45e7BF0D14B2ED5DA3028": "agree",
-        "0xEEcEC5D1E07Ee40f5cb85aF922178Dc01278013C": "idle",
-        "0xcF5Fd792Df0Dc9d297af75c82B4A0011e8FA1A4A": "agree",
+        "0xE52dDB85587585930b1E5f1Fe88fef21CcA49829": "idle",
+        "0xcF5Fd792Df0Dc9d297af75c82B4A0011e8FA1A4A": "agree"
+      },
+      "tally": {
+        "idle": 2,
+        "agree": 3
+      },
+      "tx_execution_hash": ""
+    },
+    "returned": "40000000000000000",
+    "state_before": {
+      "attestation_count": "3",
+      "balance": "200000000000000000",
+      "ledger_conserved": true,
+      "protocol_vault": "160000000000000000",
+      "solvent": true,
+      "total_credits": "40000000000000000",
+      "total_paid_out": "0",
+      "total_received": "200000000000000000"
+    },
+    "state_after": {
+      "attestation_count": "3",
+      "balance": "200000000000000000",
+      "ledger_conserved": true,
+      "protocol_vault": "160000000000000000",
+      "solvent": false,
+      "total_credits": "0",
+      "total_paid_out": "40000000000000000",
+      "total_received": "200000000000000000",
+      "balance_drift": "40000000000000000"
+    },
+    "claimable_after": "0",
+    "caller_balance_before": "1097674793749973426",
+    "caller_balance_after": "1147465233749976956"
+  },
+  "sweep_vault": {
+    "tx_hash": "0xa0fbcead42fabb97d8019344bc85d1b3d9b49b76300d1578e0b679dfb0c881e7",
+    "consensus": {
+      "result": "MAJORITY_AGREE",
+      "state_hashes": {
+        "leader": "bef3f6957676661410e2e2d6897a452b96c76a0a81bcf199cbc37aea6f5f3774",
+        "validator_0_validator_agree": "bef3f6957676661410e2e2d6897a452b96c76a0a81bcf199cbc37aea6f5f3774",
+        "validator_2_validator_agree": "bef3f6957676661410e2e2d6897a452b96c76a0a81bcf199cbc37aea6f5f3774"
+      },
+      "execution": "FINISHED_WITH_RETURN",
+      "votes": {
+        "0x05d8aFc66B515038712537f99cAAEA73d16f0007": "agree",
+        "0x6760cDeC573cf38568C59872ee48B6fED41F8A4c": "idle",
+        "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "agree",
+        "0xcbC79F96B7A275b23EE64d80a98325107F6E1b77": "agree",
         "0xf13c3DfE38C8E206C33F750C24a1b043b63Cb810": "idle"
       },
       "tally": {
@@ -301,64 +386,15 @@
       },
       "tx_execution_hash": ""
     },
-    "returned": "50000000000000000",
+    "returned": "160000000000000000",
     "state_before": {
       "attestation_count": "3",
       "balance": "200000000000000000",
       "ledger_conserved": true,
-      "protocol_vault": "150000000000000000",
-      "solvent": true,
-      "total_credits": "50000000000000000",
-      "total_paid_out": "0",
-      "total_received": "200000000000000000"
-    },
-    "state_after": {
-      "attestation_count": "3",
-      "balance": "200000000000000000",
-      "ledger_conserved": true,
-      "protocol_vault": "150000000000000000",
+      "protocol_vault": "160000000000000000",
       "solvent": false,
       "total_credits": "0",
-      "total_paid_out": "50000000000000000",
-      "total_received": "200000000000000000",
-      "balance_drift": "50000000000000000"
-    },
-    "claimable_after": "0",
-    "caller_balance_before": "1248493931999975657",
-    "caller_balance_after": "1348204404499983540"
-  },
-  "sweep_vault": {
-    "tx_hash": "0x8af95c3b2baeeb180036a9d2ab05e75897ad6279329b2e9a7d15480a4815d1b6",
-    "consensus": {
-      "result": "MAJORITY_AGREE",
-      "state_hashes": {
-        "leader": "cff5acd9820fd9f99d4b9744a1526a81faf70370a4309dcd2da2139e49f2c97e",
-        "validator_0_validator_agree": "cff5acd9820fd9f99d4b9744a1526a81faf70370a4309dcd2da2139e49f2c97e",
-        "validator_2_validator_agree": "cff5acd9820fd9f99d4b9744a1526a81faf70370a4309dcd2da2139e49f2c97e"
-      },
-      "execution": "FINISHED_WITH_RETURN",
-      "votes": {
-        "0x1dA3a7de8EA65A318bf88Eb63d3dC55295Dd257E": "idle",
-        "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "agree",
-        "0x8D32eb5D0207f7E230C45e7BF0D14B2ED5DA3028": "idle",
-        "0xE4E106086F167D75E2270fa5f3680f6ac598d179": "agree",
-        "0xf13c3DfE38C8E206C33F750C24a1b043b63Cb810": "agree"
-      },
-      "tally": {
-        "idle": 2,
-        "agree": 3
-      },
-      "tx_execution_hash": ""
-    },
-    "returned": "150000000000000000",
-    "state_before": {
-      "attestation_count": "3",
-      "balance": "200000000000000000",
-      "ledger_conserved": true,
-      "protocol_vault": "150000000000000000",
-      "solvent": false,
-      "total_credits": "0",
-      "total_paid_out": "50000000000000000",
+      "total_paid_out": "40000000000000000",
       "total_received": "200000000000000000"
     },
     "state_after": {
@@ -383,5 +419,5 @@
     "total_paid_out": "200000000000000000",
     "total_received": "200000000000000000"
   },
-  "interacted_at": "2026-10-03T16:06:53+00:00"
+  "interacted_at": "2026-10-03T16:33:18+00:00"
 }

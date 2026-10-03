@@ -12,7 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from conftest import CONTRACT, FEE, LONG_TEXT, expected_hash, html_page
+from conftest import (CONTRACT, FEE, LONG_TEXT, MAX_PAYLOAD, PENALTY, REFUND, expected_hash,
+                      html_page, page_text, sha, typed)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -198,11 +199,9 @@ def test_attest_rejects_bad_url_and_changes_nothing(chain, raw):
     chain.assert_invariants()
 
 
-# ============================================================================
-# 3. Successful attestation + deterministic extraction
-# ============================================================================
 def test_successful_attestation_record(chain):
-    chain.page(r".*example\.com.*", 200, html_page(LONG_TEXT, "Sample Document"))
+    body = html_page(LONG_TEXT, "Sample Document")
+    chain.page(r".*example\.com.*", 200, body)
     chain.vm.warp("2026-03-01T12:00:00+00:00")
     r = chain.attest(chain.bob, "https://www.Example.com/doc/")
     assert r["status"] == "ATTESTED"
@@ -216,10 +215,15 @@ def test_successful_attestation_record(chain):
     assert a["fee_paid"] == str(FEE)
     assert a["attester"] == chain.key(chain.bob)
     assert a["timestamp"] == 1772366400
-    assert re.fullmatch(r"[0-9a-f]{64}", a["content_hash"])
-    # heading "Sample Document" is inside <article> so it leads the text
-    assert a["content_hash"] == expected_hash("Sample Document " + LONG_TEXT)
-    assert a["text_snippet"] == ("Sample Document " + LONG_TEXT)[:200]
+    assert a["content_kind"] == "html"
+    assert a["size_bytes"] == len(body.encode())
+    assert re.fullmatch(r"[0-9a-f]{64}", a["normalized_sha256"])
+    assert re.fullmatch(r"[0-9a-f]{64}", a["raw_sha256"])
+    # raw covers the exact bytes; normalized covers ALL visible text in order
+    assert a["raw_sha256"] == sha(body.encode())
+    assert a["normalized_sha256"] == expected_hash(page_text(LONG_TEXT, "Sample Document"))
+    assert a["raw_sha256"] != a["normalized_sha256"]
+    assert a["text_snippet"] == page_text(LONG_TEXT, "Sample Document")[:200]
     assert len(a["text_snippet"]) <= 200
     chain.assert_invariants()
 
@@ -229,10 +233,10 @@ def test_snippet_is_first_200_chars(chain):
     chain.page(r".*", 200, html_page(long_body, "T"))
     chain.attest(chain.alice, "https://example.com/long")
     a = chain.c.get_attestation(1)
-    full = "T " + long_body
+    full = page_text(long_body, "T")
     assert len(a["text_snippet"]) == 200
     assert a["text_snippet"] == full[:200]
-    assert a["content_hash"] == expected_hash(full)
+    assert a["normalized_sha256"] == expected_hash(full)
 
 
 def test_ids_are_sequential(chain):
@@ -250,56 +254,102 @@ def test_failed_attest_does_not_consume_an_id(chain):
     assert r["attestation_id"] == 1
 
 
-def test_chrome_is_stripped_from_hash(chain):
-    chain.page(r".*a\.example\.com.*", 200, html_page(LONG_TEXT, "Doc", extra_chrome="AAA"))
-    chain.page(r".*b\.example\.com.*", 200, html_page(LONG_TEXT, "Doc", extra_chrome="BBB"))
+def test_script_payloads_do_not_change_hash(chain):
+    chain.page(r".*a\.example\.com.*", 200, html_page(LONG_TEXT, "Doc", tracker="AAA"))
+    chain.page(r".*b\.example\.com.*", 200, html_page(LONG_TEXT, "Doc", tracker="BBB"))
     r1 = chain.attest(chain.alice, "https://a.example.com/p")
     r2 = chain.attest(chain.alice, "https://b.example.com/p")
-    # different ads / script payloads, identical document => identical hash
-    assert r1["content_hash"] == r2["content_hash"]
+    # different tracker scripts, identical visible document => identical normalized hash ...
+    assert r1["normalized_sha256"] == r2["normalized_sha256"]
+    # ... while the raw bytes differ, and the raw hash says so
+    assert r1["raw_sha256"] != r2["raw_sha256"]
 
 
-@pytest.mark.parametrize("chrome", [
+
+IGNORED_NON_RENDERABLE = [
     "<script>evil()</script>",
     "<style>.x{color:red}</style>",
     "<noscript>enable js</noscript>",
-    "<nav>Home | About | Contact</nav>",
-    "<header>Brand header</header>",
-    "<footer>All rights reserved</footer>",
-    "<aside>Trending now</aside>",
-    "<form><input name=q><button>Go</button></form>",
-    "<div class='cookie-consent'>Accept cookies</div>",
-    "<div id='cookie-banner'>Cookies!</div>",
-    "<div class='ad-slot'>Sponsored</div>",
-    "<div class='advert'>Buy</div>",
-    "<div class='sidebar'>Sidebar</div>",
-    "<div class='breadcrumb'>a &gt; b</div>",
-    "<div class='newsletter-signup'>Subscribe</div>",
-    "<div class='share-buttons'>Share</div>",
-    "<div role='navigation'>nav role</div>",
-    "<div role='banner'>banner role</div>",
-    "<div aria-hidden='true'>hidden text</div>",
-    "<div hidden>hidden attr</div>",
     "<svg><text>svg text</text></svg>",
-    "<iframe>frame</iframe>",
-    "<template><p>tmpl</p></template>",
-    "<div class='popup modal'>Popup</div>",
-])
-def test_non_document_chrome_never_changes_hash(chain, chrome):
-    base = (
-        "<html><head><title>T</title></head><body><main><p>"
-        + LONG_TEXT + "</p></main></body></html>"
-    )
-    noisy = (
-        "<html><head><title>T</title></head><body>" + chrome
-        + "<main><p>" + LONG_TEXT + "</p></main>" + chrome + "</body></html>"
-    )
+    "<canvas>fallback canvas text</canvas>",
+]
+
+
+def test_only_non_renderable_tags_are_ignored(chain):
+    base = "<html><head><title>T</title></head><body><p>" + LONG_TEXT + "</p></body></html>"
     chain.page(r".*clean\.example\.com.*", 200, base)
-    chain.page(r".*noisy\.example\.com.*", 200, noisy)
-    a = chain.attest(chain.alice, "https://clean.example.com/")
-    b = chain.attest(chain.alice, "https://noisy.example.com/")
-    assert a["status"] == b["status"] == "ATTESTED"
-    assert a["content_hash"] == b["content_hash"]
+    ref = chain.attest(chain.alice, "https://clean.example.com/")
+    for i, junk in enumerate(IGNORED_NON_RENDERABLE):
+        noisy = "<html><head><title>T</title></head><body>" + junk + "<p>" + LONG_TEXT + "</p>" + junk + "</body></html>"
+        chain.page(rf".*n{i}\.example\.com.*", 200, noisy)
+        r = chain.attest(chain.alice, f"https://n{i}.example.com/")
+        assert r["status"] == "ATTESTED", junk
+        assert r["normalized_sha256"] == ref["normalized_sha256"], junk
+        assert r["raw_sha256"] != ref["raw_sha256"], junk
+
+
+RETAINED = [
+    ("<nav>Home | About | Contact</nav>", "Home | About | Contact"),
+    ("<header>Brand header</header>", "Brand header"),
+    ("<footer>All rights reserved. No warranty.</footer>", "All rights reserved. No warranty."),
+    ("<aside>Trending now</aside>", "Trending now"),
+    ("<form><label>Email</label><button>Go</button></form>", "Email Go"),
+    ("<div class='sale-promo'>50% OFF today only</div>", "50% OFF today only"),
+    ("<div class='promo'>Free shipping</div>", "Free shipping"),
+    ("<div class='sale'>Price: 99 USD</div>", "Price: 99 USD"),
+    ("<div class='banner'>Warranty void if opened</div>", "Warranty void if opened"),
+    ("<div class='social'>Follow us</div>", "Follow us"),
+    ("<div class='share-buttons'>Share this</div>", "Share this"),
+    ("<div class='cookie-consent'>Accept cookies</div>", "Accept cookies"),
+    ("<div id='cookie-banner'>Cookies!</div>", "Cookies!"),
+    ("<div class='ad-slot'>Sponsored</div>", "Sponsored"),
+    ("<div class='advert'>Buy</div>", "Buy"),
+    ("<div class='sidebar'>Sidebar note</div>", "Sidebar note"),
+    ("<div class='breadcrumb'>a &gt; b</div>", "a > b"),
+    ("<div class='newsletter-signup'>Subscribe</div>", "Subscribe"),
+    ("<div role='navigation'>nav role</div>", "nav role"),
+    ("<div role='banner'>banner role</div>", "banner role"),
+    ("<div aria-hidden='true'>aria hidden text</div>", "aria hidden text"),
+    ("<div hidden>hidden attr text</div>", "hidden attr text"),
+    ("<div class='popup modal'>Popup text</div>", "Popup text"),
+    ("<div id='menu'>Menu entry</div>", "Menu entry"),
+]
+
+
+def test_class_id_and_landmark_elements_are_never_stripped(chain):
+    base = "<html><body><p>" + LONG_TEXT + "</p></body></html>"
+    chain.page(r".*clean\.example\.com.*", 200, base)
+    ref = chain.attest(chain.alice, "https://clean.example.com/")
+    assert ref["normalized_sha256"] == expected_hash(LONG_TEXT)
+    for i, (frag, text) in enumerate(RETAINED):
+        page = "<html><body>" + frag + "<p>" + LONG_TEXT + "</p></body></html>"
+        chain.page(rf".*r{i}\.example\.com.*", 200, page)
+        r = chain.attest(chain.alice, f"https://r{i}.example.com/")
+        assert r["status"] == "ATTESTED", frag
+        assert r["normalized_sha256"] != ref["normalized_sha256"], frag
+        assert r["normalized_sha256"] == expected_hash(text + " " + LONG_TEXT), frag
+
+
+def test_sale_promo_element_and_text_outside_main_change_the_hash(chain):
+    terms = "Terms: warranty void if opened. Price 99 USD, refunds within 3 days only."
+    only_main = "<html><body><main><p>" + LONG_TEXT + "</p></main></body></html>"
+    with_extra = (
+        "<html><body><div class='sale-promo'>Price 99 USD</div><main><p>" + LONG_TEXT
+        + "</p></main><section>" + terms + "</section></body></html>"
+    )
+    swapped = with_extra.replace("99 USD,", "199 USD,").replace("Price 99 USD</div>", "Price 199 USD</div>")
+    chain.page(r".*m\.example\.com.*", 200, only_main)
+    chain.page(r".*e\.example\.com.*", 200, with_extra)
+    chain.page(r".*s\.example\.com.*", 200, swapped)
+    m = chain.attest(chain.alice, "https://m.example.com/")
+    e = chain.attest(chain.alice, "https://e.example.com/")
+    w = chain.attest(chain.alice, "https://s.example.com/")
+    assert m["normalized_sha256"] == expected_hash(LONG_TEXT)
+    assert e["normalized_sha256"] == expected_hash("Price 99 USD " + LONG_TEXT + " " + terms)
+    assert len({m["normalized_sha256"], e["normalized_sha256"], w["normalized_sha256"]}) == 3
+    snippet = chain.c.get_attestation(2)["text_snippet"]
+    assert snippet.startswith("Price 99 USD")  # the promo text is in the verified text
+
 
 
 def test_whitespace_entities_and_unicode_do_not_change_hash(chain):
@@ -313,7 +363,7 @@ def test_whitespace_entities_and_unicode_do_not_change_hash(chain):
     chain.page(r".*p2\.example\.com.*", 200, messy)
     a = chain.attest(chain.alice, "https://p1.example.com/")
     b = chain.attest(chain.alice, "https://p2.example.com/")
-    assert a["content_hash"] == b["content_hash"] == expected_hash(LONG_TEXT)
+    assert a["normalized_sha256"] == b["normalized_sha256"] == expected_hash(LONG_TEXT)
 
 
 def test_typographic_quotes_and_dashes_fold(chain):
@@ -323,7 +373,7 @@ def test_typographic_quotes_and_dashes_fold(chain):
     chain.page(r".*c\.example\.com.*", 200, curly)
     a = chain.attest(chain.alice, "https://s.example.com/")
     b = chain.attest(chain.alice, "https://c.example.com/")
-    assert a["content_hash"] == b["content_hash"]
+    assert a["normalized_sha256"] == b["normalized_sha256"]
 
 
 def test_nfkc_compatibility_forms_fold(chain):
@@ -333,7 +383,7 @@ def test_nfkc_compatibility_forms_fold(chain):
     chain.page(r".*y\.example\.com.*", 200, fancy)
     a = chain.attest(chain.alice, "https://x.example.com/")
     b = chain.attest(chain.alice, "https://y.example.com/")
-    assert a["content_hash"] == b["content_hash"]
+    assert a["normalized_sha256"] == b["normalized_sha256"]
 
 
 def test_text_change_changes_hash(chain):
@@ -341,24 +391,22 @@ def test_text_change_changes_hash(chain):
     chain.page(r".*v2\.example\.com.*", 200, html_page(LONG_TEXT.replace("agree", "disagree")))
     a = chain.attest(chain.alice, "https://v1.example.com/")
     b = chain.attest(chain.alice, "https://v2.example.com/")
-    assert a["content_hash"] != b["content_hash"]
+    assert a["normalized_sha256"] != b["normalized_sha256"]
 
 
-def test_article_landmark_preferred_over_page_body(chain):
-    page = (
-        "<html><body><div>Outside text that is long enough to be a document on its own right.</div>"
-        "<article>" + LONG_TEXT + "</article></body></html>"
-    )
+def test_text_outside_article_is_part_of_the_document(chain):
+    outside = "Outside text that is long enough to be a document on its own right."
+    page = "<html><body><div>" + outside + "</div><article>" + LONG_TEXT + "</article></body></html>"
     chain.page(r".*", 200, page)
     r = chain.attest(chain.alice, "https://example.com/")
-    assert r["content_hash"] == expected_hash(LONG_TEXT)
+    assert r["normalized_sha256"] == expected_hash(outside + " " + LONG_TEXT)
 
 
 def test_page_without_landmark_uses_body_text(chain):
     page = "<html><head><title>Plain</title></head><body><div><p>" + LONG_TEXT + "</p></div></body></html>"
     chain.page(r".*", 200, page)
     r = chain.attest(chain.alice, "https://example.com/")
-    assert r["content_hash"] == expected_hash(LONG_TEXT)
+    assert r["normalized_sha256"] == expected_hash(LONG_TEXT)
     assert r["title"] == "Plain"
 
 
@@ -366,14 +414,14 @@ def test_title_is_not_part_of_body_hash_but_is_recorded(chain):
     chain.page(r".*t1\.example\.com.*", 200, "<html><head><title>One</title></head><body><p>" + LONG_TEXT + "</p></body></html>")
     r = chain.attest(chain.alice, "https://t1.example.com/")
     assert r["title"] == "One"
-    assert r["content_hash"] == expected_hash(LONG_TEXT)
+    assert r["normalized_sha256"] == expected_hash(LONG_TEXT)
 
 
 def test_plain_text_document(chain):
     chain.page(r".*", 200, "Request for Comments 9000\n\n   QUIC: A UDP-Based Multiplexed and Secure Transport\n")
     r = chain.attest(chain.alice, "https://example.com/rfc.txt")
     assert r["status"] == "ATTESTED"
-    assert r["content_hash"] == expected_hash("Request for Comments 9000 QUIC: A UDP-Based Multiplexed and Secure Transport")
+    assert r["normalized_sha256"] == expected_hash("Request for Comments 9000 QUIC: A UDP-Based Multiplexed and Secure Transport")
     assert r["title"] == ""
 
 
@@ -382,20 +430,44 @@ def test_malformed_html_is_tolerated(chain):
     chain.page(r".*", 200, page)
     r = chain.attest(chain.alice, "https://example.com/")
     assert r["status"] == "ATTESTED"
-    assert re.fullmatch(r"[0-9a-f]{64}", r["content_hash"])
+    assert re.fullmatch(r"[0-9a-f]{64}", r["normalized_sha256"])
 
 
 def test_extraction_is_deterministic_across_runs(chain):
     chain.page(r".*", 200)
-    hashes = {chain.attest(chain.alice, "https://example.com/same")["content_hash"] for _ in range(4)}
+    hashes = {chain.attest(chain.alice, "https://example.com/same")["normalized_sha256"] for _ in range(4)}
     assert len(hashes) == 1
 
 
-def test_oversized_body_is_bounded(chain):
-    big = "<html><body><article>" + ("lorem ipsum dolor " * 20_000) + "</article></body></html>"
-    chain.page(r".*", 200, big)
-    r = chain.attest(chain.alice, "https://example.com/big")
+def test_payload_exactly_at_cap_is_accepted(chain):
+    word = "lorem "
+    body = (word * (MAX_PAYLOAD // len(word) + 1)).encode()[:MAX_PAYLOAD]
+    assert len(body) == MAX_PAYLOAD
+    chain.vm.mock_web(r".*", typed(body, "text/plain"))
+    r = chain.attest(chain.alice, "https://example.com/at-cap")
     assert r["status"] == "ATTESTED"
+    a = chain.c.get_attestation(r["attestation_id"])
+    assert a["size_bytes"] == MAX_PAYLOAD and a["raw_sha256"] == sha(body)
+    chain.assert_invariants()
+
+
+@pytest.mark.parametrize("extra", [1, 1000])
+def test_payload_over_cap_reverts_explicitly_and_is_never_truncated(chain, extra):
+    body = b"A" * (MAX_PAYLOAD + extra)
+    chain.vm.mock_web(r".*", typed(body, "application/pdf"))
+    with chain.vm.expect_revert("ERR_PAYLOAD_TOO_LARGE"):
+        chain.attest(chain.alice, "https://example.com/huge.pdf")
+    s = chain.state()
+    assert s["attestation_count"] == "0"
+    assert s["protocol_vault"] == "0" and s["total_credits"] == "0" and s["total_received"] == "0"
+    chain.assert_invariants()
+
+
+def test_over_cap_html_also_reverts(chain):
+    page = "<html><body><p>" + ("x " * (MAX_PAYLOAD // 2 + 10)) + "</p></body></html>"
+    chain.page(r".*", 200, page)
+    with chain.vm.expect_revert("ERR_PAYLOAD_TOO_LARGE"):
+        chain.attest(chain.alice, "https://example.com/huge")
 
 
 def test_bytes_body_is_decoded(chain):
@@ -439,11 +511,11 @@ def test_latest_pointer_follows_newest_attestation(chain):
     assert first["attestation_id"] == 1 and second["attestation_id"] == 2
     latest = chain.c.get_latest_attestation("https://example.com/doc")
     assert latest["attestation_id"] == 2
-    assert latest["content_hash"] == second["content_hash"] != first["content_hash"]
+    assert latest["normalized_sha256"] == second["normalized_sha256"] != first["normalized_sha256"]
     # the superseded record stays immutable and verifiable
-    assert chain.c.get_attestation(1)["content_hash"] == first["content_hash"]
-    assert chain.c.verify_attestation(1, first["content_hash"]) is True
-    assert chain.c.verify_attestation(2, first["content_hash"]) is False
+    assert chain.c.get_attestation(1)["normalized_sha256"] == first["normalized_sha256"]
+    assert chain.c.verify_attestation(1, first["normalized_sha256"]) is True
+    assert chain.c.verify_attestation(2, first["normalized_sha256"]) is False
 
 
 def test_distinct_urls_have_independent_latest(chain):
@@ -505,12 +577,14 @@ def test_http_failures_refund_fee_to_claimable_credits(chain, status, expected):
     r = chain.attest(chain.bob, "https://example.com/missing")
     assert r["status"] == expected
     assert r["attestation_id"] == 0
-    assert r["refunded"] == str(FEE)
+    assert r["refunded"] == str(REFUND)
+    assert r["retained"] == str(PENALTY)
     s = chain.state()
     assert s["attestation_count"] == "0"
-    assert s["protocol_vault"] == "0"  # fee never reaches the vault
-    assert s["total_credits"] == str(FEE)
-    assert chain.c.claimable_of(chain.key(chain.bob)) == FEE
+    assert s["protocol_vault"] == str(PENALTY)  # 20% bandwidth fee is kept ...
+    assert s["total_credits"] == str(REFUND)  # ... 80% is refundable
+    assert int(s["protocol_vault"]) + int(s["total_credits"]) == FEE
+    assert chain.c.claimable_of(chain.key(chain.bob)) == REFUND
     assert chain.c.claimable_of(chain.key(chain.alice)) == 0
     with chain.vm.expect_revert("ERR_NOT_FOUND"):
         chain.c.get_latest_attestation("https://example.com/missing")
@@ -521,8 +595,9 @@ def test_unmocked_host_is_unreachable_or_void_and_refunds(chain):
     # no mock registered: the harness fails the request like a dead host
     r = chain.attest(chain.alice, "https://nothing-listens-here.example.com/")
     assert r["status"] in ("UNREACHABLE", "AMBIGUOUS_VOID")
-    assert r["refunded"] == str(FEE)
-    assert chain.c.claimable_of(chain.key(chain.alice)) == FEE
+    assert r["refunded"] == str(REFUND)
+    assert chain.c.claimable_of(chain.key(chain.alice)) == REFUND
+    assert chain.state()["protocol_vault"] == str(PENALTY)
     chain.assert_invariants()
 
 
@@ -536,8 +611,8 @@ def test_empty_or_non_document_page_is_ambiguous_void(chain, body):
     chain.page(r".*", 200, body)
     r = chain.attest(chain.alice, "https://example.com/empty")
     assert r["status"] == "AMBIGUOUS_VOID"
-    assert chain.c.claimable_of(chain.key(chain.alice)) == FEE
-    assert chain.state()["protocol_vault"] == "0"
+    assert chain.c.claimable_of(chain.key(chain.alice)) == REFUND
+    assert chain.state()["protocol_vault"] == str(PENALTY)
     chain.assert_invariants()
 
 
@@ -552,9 +627,10 @@ def test_refunds_accumulate_per_account(chain):
     for _ in range(3):
         chain.attest(chain.alice, "https://example.com/x")
     chain.attest(chain.bob, "https://example.com/y")
-    assert chain.c.claimable_of(chain.key(chain.alice)) == 3 * FEE
-    assert chain.c.claimable_of(chain.key(chain.bob)) == FEE
-    assert chain.state()["total_credits"] == str(4 * FEE)
+    assert chain.c.claimable_of(chain.key(chain.alice)) == 3 * REFUND
+    assert chain.c.claimable_of(chain.key(chain.bob)) == REFUND
+    assert chain.state()["total_credits"] == str(4 * REFUND)
+    assert chain.state()["protocol_vault"] == str(4 * PENALTY)
     chain.assert_invariants()
 
 
@@ -562,8 +638,8 @@ def test_claimable_of_is_case_insensitive_and_unknown_is_zero(chain):
     chain.page(r".*", 404, "gone")
     chain.attest(chain.alice, "https://example.com/x")
     k = chain.key(chain.alice)
-    assert chain.c.claimable_of(k) == FEE
-    assert chain.c.claimable_of(k.upper().replace("0X", "0x")) == FEE
+    assert chain.c.claimable_of(k) == REFUND
+    assert chain.c.claimable_of(k.upper().replace("0X", "0x")) == REFUND
     assert chain.c.claimable_of("0x" + "ab" * 20) == 0
 
 
@@ -621,8 +697,8 @@ def test_invariant_with_mixed_success_and_refund(chain):
         chain.attest(who, f"https://{host}.example.com/x")
         chain.assert_invariants()
     s = chain.state()
-    assert s["protocol_vault"] == str(3 * FEE)
-    assert s["total_credits"] == str(3 * FEE)
+    assert s["protocol_vault"] == str(3 * FEE + 3 * PENALTY)  # 3 fees + 3 failure penalties
+    assert s["total_credits"] == str(3 * REFUND)
     assert s["attestation_count"] == "3"
     assert chain.mirror == 6 * FEE
 
@@ -632,10 +708,11 @@ def test_withdraw_pays_exactly_credits_and_keeps_invariant(chain):
     chain.attest(chain.bob, "https://example.com/x")
     chain.attest(chain.bob, "https://example.com/y")
     paid = chain.withdraw(chain.bob)
-    assert paid == 2 * FEE
+    assert paid == 2 * REFUND
     assert chain.c.claimable_of(chain.key(chain.bob)) == 0
     assert chain.state()["total_credits"] == "0"
-    assert chain.mirror == 0
+    assert chain.mirror == 2 * PENALTY  # the non-refundable 20% stays as the vault
+    assert chain.state()["protocol_vault"] == str(2 * PENALTY)
     chain.assert_invariants()
 
 
@@ -645,8 +722,8 @@ def test_withdraw_does_not_touch_vault(chain):
     chain.attest(chain.alice, "https://ok.example.com/")
     chain.attest(chain.bob, "https://dead.example.com/")
     chain.withdraw(chain.bob)
-    assert chain.state()["protocol_vault"] == str(FEE)
-    assert chain.mirror == FEE
+    assert chain.state()["protocol_vault"] == str(FEE + PENALTY)
+    assert chain.mirror == FEE + PENALTY
     chain.assert_invariants()
 
 
@@ -668,10 +745,10 @@ def test_withdraw_only_pays_the_caller(chain):
     chain.page(r".*", 404, "x")
     chain.attest(chain.alice, "https://example.com/")
     chain.attest(chain.bob, "https://example.com/")
-    assert chain.withdraw(chain.alice) == FEE
-    assert chain.c.claimable_of(chain.key(chain.bob)) == FEE
+    assert chain.withdraw(chain.alice) == REFUND
+    assert chain.c.claimable_of(chain.key(chain.bob)) == REFUND
     chain.assert_invariants()
-    assert chain.withdraw(chain.bob) == FEE
+    assert chain.withdraw(chain.bob) == REFUND
     chain.assert_invariants()
 
 
@@ -691,9 +768,9 @@ def test_sweep_never_touches_refund_credits(chain):
     chain.page(r".*dead.*", 404, "x")
     chain.attest(chain.bob, "https://ok.example.com/")
     chain.attest(chain.carol, "https://dead.example.com/")
-    chain.sweep(chain.alice)
-    assert chain.c.claimable_of(chain.key(chain.carol)) == FEE
-    assert chain.mirror == FEE  # only the refund remains
+    assert chain.sweep(chain.alice) == FEE + PENALTY  # success fee + the failure's 20%
+    assert chain.c.claimable_of(chain.key(chain.carol)) == REFUND
+    assert chain.mirror == REFUND  # only the refundable 80% remains
     chain.assert_invariants()
     chain.withdraw(chain.carol)
     assert chain.mirror == 0
@@ -792,10 +869,10 @@ def test_ledger_identity_counters(chain):
     assert s["total_received"] == str(2 * FEE) and s["total_paid_out"] == "0"
     chain.withdraw(chain.bob)
     s = chain.state()
-    assert s["total_received"] == str(2 * FEE) and s["total_paid_out"] == str(FEE)
+    assert s["total_received"] == str(2 * FEE) and s["total_paid_out"] == str(REFUND)
     chain.sweep(chain.alice)
     s = chain.state()
-    assert s["total_paid_out"] == str(2 * FEE)
+    assert s["total_paid_out"] == str(2 * FEE)  # REFUND + (FEE + PENALTY)
     assert s["protocol_vault"] == "0" and s["total_credits"] == "0"
     assert s["ledger_conserved"] is True
 
@@ -807,12 +884,12 @@ def test_ledger_holds_even_if_chain_never_debits_payouts(chain):
     chain.page(r".*dead.*", 404, "x")
     chain.attest(chain.bob, "https://dead.example.com/")
     chain.vm.sender = chain.bob
-    assert int(chain.c.pull_withdraw()) == FEE  # mirror deliberately NOT debited
+    assert int(chain.c.pull_withdraw()) == REFUND  # mirror deliberately NOT debited
     s = chain.state()
     assert s["ledger_conserved"] is True
     assert s["solvent"] is False  # strict identity is off on such a chain ...
     drift = int(s["balance"]) - int(s["protocol_vault"]) - int(s["total_credits"])
-    assert drift == int(s["total_paid_out"]) == FEE  # ... by exactly what was paid out
+    assert drift == int(s["total_paid_out"]) == REFUND  # ... by exactly what was paid out
 
 
 def test_solvency_view_reflects_mirror(chain):
@@ -832,7 +909,7 @@ def test_solvency_view_reflects_mirror(chain):
 def test_verify_attestation_exact_match(chain):
     chain.page(r".*", 200)
     r = chain.attest(chain.alice, "https://example.com/")
-    h = r["content_hash"]
+    h = r["normalized_sha256"]
     assert chain.c.verify_attestation(1, h) is True
     assert chain.c.verify_attestation(1, h.upper()) is True
     assert chain.c.verify_attestation(1, "0x" + h) is True
@@ -850,7 +927,7 @@ def test_verify_attestation_mismatch(chain, bad):
 
 def test_verify_attestation_off_by_one_char(chain):
     chain.page(r".*", 200)
-    h = chain.attest(chain.alice, "https://example.com/")["content_hash"]
+    h = chain.attest(chain.alice, "https://example.com/")["normalized_sha256"]
     flipped = ("0" if h[0] != "0" else "1") + h[1:]
     assert chain.c.verify_attestation(1, flipped) is False
     assert chain.c.verify_attestation(1, h[:-1]) is False
@@ -860,7 +937,7 @@ def test_verify_attestation_off_by_one_char(chain):
 @pytest.mark.parametrize("attestation_id", [0, 2, 99, 2**64])
 def test_verify_attestation_unknown_id_is_false(chain, attestation_id):
     chain.page(r".*", 200)
-    h = chain.attest(chain.alice, "https://example.com/")["content_hash"]
+    h = chain.attest(chain.alice, "https://example.com/")["normalized_sha256"]
     assert chain.c.verify_attestation(attestation_id, h) is False
 
 
@@ -875,7 +952,7 @@ def test_attestation_is_immutable_after_later_activity(chain):
     chain.attest(chain.bob, "https://example.com/other")
     chain.sweep(chain.alice)
     a = chain.c.get_attestation(1)
-    assert a["content_hash"] == snap["content_hash"]
+    assert a["normalized_sha256"] == snap["normalized_sha256"]
     assert a["attester"] == chain.key(chain.alice)
     assert a["fee_paid"] == str(FEE)
 
@@ -1004,18 +1081,20 @@ def test_validator_failure_class_agreement(chain, leader_status, validator_statu
 def test_validator_rejects_forged_leader_hash(chain):
     chain.page(r".*", 200)
     _leader_attest(chain)
-    forged = {"ok": True, "code": "ATTESTED", "hash": "0" * 64, "title": "Sample Document", "snippet": "x"}
+    forged = {"ok": True, "code": "ATTESTED", "kind": "html", "raw": "1" * 64, "norm": "0" * 64,
+              "title": "Sample Document", "snippet": "x", "size": 1}
     assert chain.vm.run_validator(leader_result=forged) is False
 
 
 def test_validator_rejects_forged_success_for_dead_page(chain):
     chain.page(r".*", 404, "gone")
     _leader_attest(chain)
-    forged = {"ok": True, "code": "ATTESTED", "hash": "a" * 64, "title": "t", "snippet": "s"}
+    forged = {"ok": True, "code": "ATTESTED", "kind": "html", "raw": "b" * 64, "norm": "a" * 64,
+              "title": "t", "snippet": "s", "size": 1}
     assert chain.vm.run_validator(leader_result=forged) is False
 
 
-@pytest.mark.parametrize("garbage", [None, {}, {"hash": "x"}, [], "str", 7])
+@pytest.mark.parametrize("garbage", [None, {}, {"norm": "x"}, [], "str", 7])
 def test_validator_rejects_malformed_leader_result(chain, garbage):
     chain.page(r".*", 200)
     _leader_attest(chain)
@@ -1026,6 +1105,196 @@ def test_validator_disagrees_when_leader_errors(chain):
     chain.page(r".*", 200)
     _leader_attest(chain)
     assert chain.vm.run_validator(leader_error=Exception("leader crashed")) is False
+
+
+# ============================================================================
+# 10b. Dual hashing, binary media, 80/20 failure split (audit regressions)
+# ============================================================================
+# Two different byte strings that a lossy UTF-8 "replace" decode maps to the SAME
+# text (each invalid byte becomes U+FFFD). A text-decoding notary would collide.
+BIN_A = b"%PDF-1.7\n" + b"\xff\xfe\xfd" * 64 + b"\n%%EOF"
+BIN_B = b"%PDF-1.7\n" + b"\xfd\xfc\xfb" * 64 + b"\n%%EOF"
+
+
+def test_binary_fixtures_collide_under_lossy_decode():
+    assert BIN_A != BIN_B
+    assert BIN_A.decode("utf-8", errors="replace") == BIN_B.decode("utf-8", errors="replace")
+    assert sha(BIN_A) != sha(BIN_B)
+
+
+@pytest.mark.parametrize("ctype", ["application/pdf", "image/png", "application/octet-stream",
+                                   "application/zip", "image/svg+xml", "video/mp4", "font/woff2"])
+def test_binary_media_records_raw_hash_as_both_hashes(chain, ctype):
+    chain.vm.mock_web(r".*a\.example\.com.*", typed(BIN_A, ctype))
+    chain.vm.mock_web(r".*b\.example\.com.*", typed(BIN_B, ctype))
+    ra = chain.attest(chain.alice, "https://a.example.com/file")
+    rb = chain.attest(chain.alice, "https://b.example.com/file")
+    a, b = chain.c.get_attestation(ra["attestation_id"]), chain.c.get_attestation(rb["attestation_id"])
+    assert a["raw_sha256"] == a["normalized_sha256"] == sha(BIN_A)
+    assert b["raw_sha256"] == b["normalized_sha256"] == sha(BIN_B)
+    assert a["raw_sha256"] != b["raw_sha256"]  # no decode collision
+    assert a["normalized_sha256"] != b["normalized_sha256"]
+    assert a["content_kind"] == "binary" and a["size_bytes"] == len(BIN_A)
+    assert a["title"] == "" and a["text_snippet"] == ""
+    chain.assert_invariants()
+
+
+def test_binary_without_content_type_is_sniffed_by_invalid_utf8(chain):
+    chain.vm.mock_web(r".*a\.example\.com.*", {"response": {"status": 200, "headers": {}, "body": BIN_A}})
+    chain.vm.mock_web(r".*b\.example\.com.*", {"response": {"status": 200, "headers": {}, "body": BIN_B}})
+    ra = chain.attest(chain.alice, "https://a.example.com/x")
+    rb = chain.attest(chain.alice, "https://b.example.com/x")
+    assert ra["content_kind"] == rb["content_kind"] == "binary"
+    assert ra["normalized_sha256"] == sha(BIN_A) != rb["normalized_sha256"] == sha(BIN_B)
+
+
+def test_binary_never_fails_the_minimum_text_length(chain):
+    tiny = b"\x89PNG\r\n\x1a\n\x00\x01"  # 10 bytes, no text at all
+    chain.vm.mock_web(r".*", typed(tiny, "image/png"))
+    r = chain.attest(chain.alice, "https://example.com/pixel.png")
+    assert r["status"] == "ATTESTED"
+    assert chain.c.get_attestation(1)["raw_sha256"] == sha(tiny)
+
+
+def test_declared_text_type_with_invalid_utf8_is_treated_as_binary(chain):
+    chain.vm.mock_web(r".*", typed(b"caf\xe9 latin-1 \xff\xfe bytes " * 5, "text/plain"))
+    r = chain.attest(chain.alice, "https://example.com/latin1.txt")
+    assert r["content_kind"] == "binary"
+    assert r["raw_sha256"] == r["normalized_sha256"]
+
+
+def test_content_type_parameters_and_case_are_ignored(chain):
+    chain.vm.mock_web(r".*", typed(html_page(), "Text/HTML; charset=UTF-8"))
+    r = chain.attest(chain.alice, "https://example.com/")
+    assert r["content_kind"] == "html"
+    assert r["normalized_sha256"] == expected_hash(page_text())
+
+
+def test_json_is_text_and_normalized(chain):
+    chain.vm.mock_web(r".*", typed('{"a":   1,\n "b": "a long enough value to be a document"}', "application/json"))
+    r = chain.attest(chain.alice, "https://example.com/data.json")
+    assert r["content_kind"] == "text"
+    assert r["normalized_sha256"] == expected_hash('{"a": 1, "b": "a long enough value to be a document"}')
+
+
+def test_html_raw_hash_tracks_every_byte_even_when_text_is_equal(chain):
+    base = "<html><body><p>" + LONG_TEXT + "</p></body></html>"
+    padded = base.replace("<p>", "<p><!-- tracking token 123 -->")
+    chain.vm.mock_web(r".*a\.example\.com.*", typed(base, "text/html"))
+    chain.vm.mock_web(r".*b\.example\.com.*", typed(padded, "text/html"))
+    a = chain.attest(chain.alice, "https://a.example.com/")
+    b = chain.attest(chain.alice, "https://b.example.com/")
+    assert a["normalized_sha256"] == b["normalized_sha256"]
+    assert a["raw_sha256"] == sha(base.encode()) and b["raw_sha256"] == sha(padded.encode())
+    assert a["raw_sha256"] != b["raw_sha256"]
+
+
+def test_verify_attestation_accepts_raw_or_normalized(chain):
+    chain.page(r".*", 200)
+    chain.attest(chain.alice, "https://example.com/")
+    a = chain.c.get_attestation(1)
+    assert chain.c.verify_attestation(1, a["raw_sha256"]) is True
+    assert chain.c.verify_attestation(1, a["normalized_sha256"]) is True
+    assert chain.c.verify_attestation(1, "0x" + a["raw_sha256"].upper()) is True
+    assert chain.c.verify_attestation(1, "0" * 64) is False
+    assert chain.c.verify_attestation(2, a["raw_sha256"]) is False
+
+
+def test_pinned_id_stays_valid_after_anyone_advances_latest(chain):
+    """The escrow pattern: a pinned (id, hash) pair is immutable. The `latest`
+    pointer is not, because a third party can append a newer attestation."""
+    chain.page(r".*", 200, html_page(LONG_TEXT))
+    agreed = chain.attest(chain.alice, "https://example.com/terms")
+    pinned_id, pinned_hash = agreed["attestation_id"], agreed["normalized_sha256"]
+    chain.vm.clear_mocks()
+    chain.page(r".*", 200, html_page(LONG_TEXT + " Added hostile clause."))
+    chain.attest(chain.carol, "https://example.com/terms")  # a stranger pays 0.05 GEN
+    assert chain.c.get_latest_attestation("https://example.com/terms")["normalized_sha256"] != pinned_hash
+    assert chain.c.verify_attestation(pinned_id, pinned_hash) is True  # unaffected
+
+
+def test_limits_view(chain):
+    lim = chain.c.get_limits()
+    assert lim["fee"] == str(FEE)
+    assert lim["failed_fee_retained"] == str(PENALTY) == "10000000000000000"
+    assert lim["failed_fee_refunded"] == str(REFUND) == "40000000000000000"
+    assert int(lim["failed_fee_retained"]) + int(lim["failed_fee_refunded"]) == FEE
+    assert lim["max_payload_bytes"] == MAX_PAYLOAD
+    assert PENALTY * 5 == FEE  # exactly 20%
+
+
+@pytest.mark.parametrize("status,expected", [(404, "AMBIGUOUS_VOID"), (403, "AMBIGUOUS_VOID"),
+                                             (500, "UNREACHABLE"), (503, "UNREACHABLE"), (429, "UNREACHABLE")])
+def test_failed_fetch_slashes_20_percent_into_vault_and_refunds_80(chain, status, expected):
+    chain.page(r".*", status, "nope")
+    r = chain.attest(chain.bob, "https://example.com/dead")
+    assert r["status"] == expected
+    assert r["retained"] == "10000000000000000" and r["refunded"] == "40000000000000000"
+    s = chain.state()
+    assert s["protocol_vault"] == "10000000000000000"  # 0.01 GEN non-refundable
+    assert s["total_credits"] == "40000000000000000"  # 0.04 GEN refundable
+    assert chain.c.claimable_of(chain.key(chain.bob)) == 4 * 10**16
+    assert s["total_received"] == str(FEE)
+    chain.assert_invariants()
+    assert chain.withdraw(chain.bob) == 4 * 10**16  # payer recovers exactly 0.04
+    assert chain.sweep(chain.alice) == 10**16  # governor collects exactly 0.01
+    assert chain.mirror == 0
+    chain.assert_invariants()
+
+
+def test_unmocked_host_also_pays_the_bandwidth_penalty(chain):
+    r = chain.attest(chain.bob, "https://nothing-listens.example.com/")
+    assert r["retained"] == str(PENALTY)
+    assert chain.state()["protocol_vault"] == str(PENALTY)
+
+
+def test_scraping_spam_is_not_free(chain):
+    """N failed attestations cost the spammer N * 0.01 GEN, irrecoverably."""
+    chain.page(r".*", 404, "x")
+    n = 7
+    for _ in range(n):
+        chain.attest(chain.carol, "https://victim.example.com/x")
+    assert chain.withdraw(chain.carol) == n * REFUND
+    assert chain.state()["protocol_vault"] == str(n * PENALTY)
+    spent = n * FEE - n * REFUND
+    assert spent == n * PENALTY > 0
+    chain.assert_invariants()
+
+
+def test_failed_then_successful_split_accounting(chain):
+    chain.page(r".*ok.*", 200)
+    chain.page(r".*dead.*", 404, "x")
+    chain.attest(chain.alice, "https://ok.example.com/")
+    chain.attest(chain.alice, "https://dead.example.com/")
+    s = chain.state()
+    assert s["protocol_vault"] == str(FEE + PENALTY)
+    assert s["total_credits"] == str(REFUND)
+    assert int(s["total_received"]) == int(s["protocol_vault"]) + int(s["total_credits"]) + int(s["total_paid_out"])
+    assert s["ledger_conserved"] is True and s["solvent"] is True
+
+
+@pytest.mark.parametrize("seed", range(6))
+def test_ledger_and_solvency_under_random_80_20_traffic(chain, seed):
+    import random
+    rng = random.Random(1000 + seed)
+    chain.page(r".*ok.*", 200)
+    chain.page(r".*dead.*", 404, "x")
+    chain.page(r".*busy.*", 503, "x")
+    who = [chain.alice, chain.bob, chain.carol]
+    for _ in range(25):
+        op = rng.choice(["ok", "dead", "dead", "busy", "withdraw", "sweep"])
+        try:
+            if op in ("ok", "dead", "busy"):
+                chain.attest(rng.choice(who), f"https://{op}.example.com/{rng.randint(0, 3)}")
+            elif op == "withdraw":
+                chain.withdraw(rng.choice(who))
+            else:
+                chain.sweep(chain.alice)
+        except Exception:
+            pass
+        s = chain.state()
+        assert int(s["total_received"]) == int(s["protocol_vault"]) + int(s["total_credits"]) + int(s["total_paid_out"])
+        chain.assert_invariants()
 
 
 # ============================================================================
