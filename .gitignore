@@ -1,0 +1,7 @@
+.venv
+__pycache__/
+*.pyc
+.pytest_cache/
+artifacts/
+# The deployer key is generated locally by scripts/_chain.py. Never commit it.
+.env
