@@ -1378,6 +1378,37 @@ def test_ledger_and_solvency_under_random_80_20_traffic(chain, seed):
         chain.assert_invariants()
 
 
+def test_is_raw_hash_verified_flag_by_content_kind(chain):
+    chain.page(r".*html\.example\.com.*", 200)
+    chain.vm.mock_web(r".*text\.example\.com.*", typed("A plain text document that is long enough to count.", "text/plain"))
+    chain.vm.mock_web(r".*bin\.example\.com.*", typed(BIN_A, "application/pdf"))
+    h = chain.attest(chain.alice, "https://html.example.com/")
+    t = chain.attest(chain.alice, "https://text.example.com/")
+    b = chain.attest(chain.alice, "https://bin.example.com/")
+    # returned by attest ...
+    assert (h["content_kind"], h["is_raw_hash_verified"]) == ("html", False)
+    assert (t["content_kind"], t["is_raw_hash_verified"]) == ("text", False)
+    assert (b["content_kind"], b["is_raw_hash_verified"]) == ("binary", True)
+    # ... and by the stored record views
+    assert chain.c.get_attestation(1)["is_raw_hash_verified"] is False
+    assert chain.c.get_attestation(2)["is_raw_hash_verified"] is False
+    assert chain.c.get_attestation(3)["is_raw_hash_verified"] is True
+    assert chain.c.get_latest_attestation("https://bin.example.com/")["is_raw_hash_verified"] is True
+    assert chain.c.get_latest_attestation("https://html.example.com/")["is_raw_hash_verified"] is False
+
+
+def test_flag_agrees_with_what_verify_attestation_accepts(chain):
+    chain.page(r".*html\.example\.com.*", 200)
+    chain.vm.mock_web(r".*bin\.example\.com.*", typed(BIN_B, "image/png"))
+    chain.attest(chain.alice, "https://html.example.com/")
+    chain.attest(chain.alice, "https://bin.example.com/")
+    for att_id in (1, 2):
+        a = chain.c.get_attestation(att_id)
+        # raw hash is accepted exactly when the flag says validators proved it
+        assert chain.c.verify_attestation(att_id, a["raw_sha256"]) is a["is_raw_hash_verified"]
+        assert chain.c.verify_attestation(att_id, a["normalized_sha256"]) is True
+
+
 # ============================================================================
 # 11. Repository gates
 # ============================================================================

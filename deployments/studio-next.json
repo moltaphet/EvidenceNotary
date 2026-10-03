@@ -2,40 +2,40 @@
   "network": "studio-next",
   "chain_id": 61997,
   "rpc_url": "https://studio-next.genlayer.com/api",
-  "contract_address": "0x94072007ec285cA65c5f84E7DF2B15b0fBD34432",
-  "explorer_url": "https://explorer-studio-next.genlayer.com/address/0x94072007ec285cA65c5f84E7DF2B15b0fBD34432",
+  "contract_address": "0x60de2c8CC2F647a25a39827308E0F2F5067dc35b",
+  "explorer_url": "https://explorer-studio-next.genlayer.com/address/0x60de2c8CC2F647a25a39827308E0F2F5067dc35b",
   "source": "contracts/evidence_notary.py",
   "runner": "5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng",
-  "source_sha256": "5c197cadbb7986469b26ab66be5e7024dacc917ed920d4b7d94514c03dacbf40",
+  "source_sha256": "c41287644150b8ce4d1278245e6a5b3f0fd6f2f98e04bc417e4a6e7574413f13",
   "deployer_and_governor": "0x79D0B199047e568B39D8c422B66c693A7F9414b1",
-  "deploy_tx": "0x5993dcd04caeb151a58cd1df597f2816047e9ee0ae7a993e8da1ff977bdf0bb2",
+  "deploy_tx": "0xa1c5db77d9efd68f4a3b06e4686b220434678e82d913bcc48189df4568784aa8",
   "deploy_status": "FINISHED_WITH_RETURN",
   "deploy_consensus": "MAJORITY_AGREE",
-  "deployed_at": "2026-10-03T16:53:24+00:00",
+  "deployed_at": "2026-10-03T17:44:53+00:00",
   "attestation_fee_atto": 50000000000000000,
   "live_proofs": [
     {
       "case": "RFC 9000 -- QUIC transport specification",
       "url": "https://rfc-editor.org/rfc/rfc9000",
-      "tx_hash": "0x34983caaad6155e3798f6564ebcd70d50e1a34481f5fed87818b7e79d103949c",
+      "tx_hash": "0xfc17c802215c078338e6cd7b842a29aef0de7bfc7c2739605391a9b0eb2a86e4",
       "consensus": {
         "result": "MAJORITY_AGREE",
         "state_hashes": {
-          "leader": "3723c4773e8f3417b0fc5881e8d8f30569455c5a8082db60b8d325d069eb71c6",
-          "validator_2_validator_agree": "3723c4773e8f3417b0fc5881e8d8f30569455c5a8082db60b8d325d069eb71c6",
-          "validator_3_validator_agree": "3723c4773e8f3417b0fc5881e8d8f30569455c5a8082db60b8d325d069eb71c6"
+          "leader": "d4bf5eaa399635f8aca45aa81f44b53bb4281f873df229a59e70436d1708b947",
+          "validator_2_validator_agree": "d4bf5eaa399635f8aca45aa81f44b53bb4281f873df229a59e70436d1708b947",
+          "validator_3_validator_agree": "d4bf5eaa399635f8aca45aa81f44b53bb4281f873df229a59e70436d1708b947"
         },
         "execution": "FINISHED_WITH_RETURN",
         "votes": {
-          "0x05d8aFc66B515038712537f99cAAEA73d16f0007": "idle",
-          "0x6760cDeC573cf38568C59872ee48B6fED41F8A4c": "idle",
+          "0x1dA3a7de8EA65A318bf88Eb63d3dC55295Dd257E": "agree",
           "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "agree",
-          "0x8D32eb5D0207f7E230C45e7BF0D14B2ED5DA3028": "agree",
-          "0xE52dDB85587585930b1E5f1Fe88fef21CcA49829": "agree"
+          "0x8D32eb5D0207f7E230C45e7BF0D14B2ED5DA3028": "idle",
+          "0xA793D9dc0ED9edC1f9F732bB68b5D3AFA934F52D": "agree",
+          "0xa0435f618c1F27B254998018AEa8Da5C77187852": "idle"
         },
         "tally": {
-          "idle": 2,
-          "agree": 3
+          "agree": 3,
+          "idle": 2
         },
         "tx_execution_hash": ""
       },
@@ -43,6 +43,7 @@
         "attestation_id": 1,
         "canonical_url": "https://rfc-editor.org/rfc/rfc9000",
         "content_kind": "html",
+        "is_raw_hash_verified": false,
         "normalized_sha256": "9307a8e848afd9d2cb79b10bee068f2ed76b7ece40ee9f42f518554b2cf7b637",
         "raw_sha256": "77e1e7dfc23a88f959f2189af224630a18fc1f5a08ce2f8480bca420af3d75e3",
         "refunded": "0",
@@ -71,7 +72,7 @@
         "total_received": "50000000000000000",
         "balance_drift": "0"
       },
-      "block_time_utc": "2026-10-03T16:53:49+00:00",
+      "block_time_utc": "2026-10-03T17:45:23+00:00",
       "outcome": "ATTESTED",
       "attestation": {
         "attestation_id": 1,
@@ -79,11 +80,12 @@
         "canonical_url": "https://rfc-editor.org/rfc/rfc9000",
         "content_kind": "html",
         "fee_paid": "50000000000000000",
+        "is_raw_hash_verified": false,
         "normalized_sha256": "9307a8e848afd9d2cb79b10bee068f2ed76b7ece40ee9f42f518554b2cf7b637",
         "raw_sha256": "77e1e7dfc23a88f959f2189af224630a18fc1f5a08ce2f8480bca420af3d75e3",
         "size_bytes": 2989622,
         "text_snippet": "Skip to content Primary navigation The RFC Series For Authors About Us Home RFC 9000 Info RFC 9000: QUIC: A UDP-Based Multiplexed and Secure Transport QUIC UDP J. Iyengar, Ed., M. Thomson, Ed. Propose",
-        "timestamp": 1791046416,
+        "timestamp": 1791049509,
         "title": "RFC 9000: QUIC: A UDP-Based Multiplexed and Secure Transport | RFC EditorExpand sidebar"
       },
       "hashes": {
@@ -96,21 +98,22 @@
     {
       "case": "Python 3.13 release notes",
       "url": "https://docs.python.org/3/whatsnew/3.13.html",
-      "tx_hash": "0x3c35dbc7d2f1da87bba61518ed42f8989fe86fb19aedc29bed064773c3e20762",
+      "tx_hash": "0x1947e1cb5c0079d1842491f5f66ddbd1e425a695caf1fa456be9fca21279aca0",
       "consensus": {
         "result": "MAJORITY_AGREE",
         "state_hashes": {
-          "leader": "bb0e2ff576cc921d95c43034f865a915a5179a33002b14f1800f11cffc82b9c8",
-          "validator_0_validator_agree": "bb0e2ff576cc921d95c43034f865a915a5179a33002b14f1800f11cffc82b9c8",
-          "validator_3_validator_agree": "bb0e2ff576cc921d95c43034f865a915a5179a33002b14f1800f11cffc82b9c8"
+          "leader": "a2ff4680a174c6576fe652e8bcd40188cae5085fd49a14e0a42700eb1f9b3912",
+          "validator_0_validator_agree": "a2ff4680a174c6576fe652e8bcd40188cae5085fd49a14e0a42700eb1f9b3912",
+          "validator_1_validator_agree": "a2ff4680a174c6576fe652e8bcd40188cae5085fd49a14e0a42700eb1f9b3912",
+          "validator_2_validator_agree": "a2ff4680a174c6576fe652e8bcd40188cae5085fd49a14e0a42700eb1f9b3912"
         },
         "execution": "FINISHED_WITH_RETURN",
         "votes": {
-          "0x05d8aFc66B515038712537f99cAAEA73d16f0007": "agree",
+          "0x5cDf4BdDeEDa0e32ED596b94f69AcC0FbB57f264": "agree",
           "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "idle",
-          "0xE4E106086F167D75E2270fa5f3680f6ac598d179": "idle",
-          "0xEEcEC5D1E07Ee40f5cb85aF922178Dc01278013C": "agree",
-          "0xcF5Fd792Df0Dc9d297af75c82B4A0011e8FA1A4A": "agree"
+          "0xA793D9dc0ED9edC1f9F732bB68b5D3AFA934F52D": "agree",
+          "0xa0435f618c1F27B254998018AEa8Da5C77187852": "idle",
+          "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "agree"
         },
         "tally": {
           "agree": 3,
@@ -122,6 +125,7 @@
         "attestation_id": 2,
         "canonical_url": "https://docs.python.org/3/whatsnew/3.13.html",
         "content_kind": "html",
+        "is_raw_hash_verified": false,
         "normalized_sha256": "b19690d381e9c84a7e926f0f5f5b9559b0690627c90f970032ea9da949494143",
         "raw_sha256": "7206ee86ff777e1a0fe4b318fc32f4608972d86068cfe3e8f3458cb2807735c5",
         "refunded": "0",
@@ -150,7 +154,7 @@
         "total_received": "100000000000000000",
         "balance_drift": "0"
       },
-      "block_time_utc": "2026-10-03T16:54:17+00:00",
+      "block_time_utc": "2026-10-03T17:45:49+00:00",
       "outcome": "ATTESTED",
       "attestation": {
         "attestation_id": 2,
@@ -158,11 +162,12 @@
         "canonical_url": "https://docs.python.org/3/whatsnew/3.13.html",
         "content_kind": "html",
         "fee_paid": "50000000000000000",
+        "is_raw_hash_verified": false,
         "normalized_sha256": "b19690d381e9c84a7e926f0f5f5b9559b0690627c90f970032ea9da949494143",
         "raw_sha256": "7206ee86ff777e1a0fe4b318fc32f4608972d86068cfe3e8f3458cb2807735c5",
         "size_bytes": 492386,
         "text_snippet": "Theme Auto Light Dark Table of Contents What's New In Python 3.13 Summary - Release Highlights New Features A better interactive interpreter Improved error messages Free-threaded CPython An experiment",
-        "timestamp": 1791046444,
+        "timestamp": 1791049538,
         "title": "What's New In Python 3.13 - Python 3.14.8 documentation"
       },
       "hashes": {
@@ -175,25 +180,25 @@
     {
       "case": "W3C Decentralized Identifiers (DID Core)",
       "url": "https://w3.org/TR/did-core/",
-      "tx_hash": "0xa42822c62fabaf83b6ca8e2e30a04d9997772b1aeb494ec08ac78492155ac3c1",
+      "tx_hash": "0xaf5b8a1f98ed92445423da7f4e0128be97135ba95eae97ae0c874857f85a61d9",
       "consensus": {
         "result": "MAJORITY_AGREE",
         "state_hashes": {
-          "leader": "c9a78b606e35a2e360dae0122a34b2f19691e9c8ba00c0d1f6508a005218c0dc",
-          "validator_1_validator_agree": "c9a78b606e35a2e360dae0122a34b2f19691e9c8ba00c0d1f6508a005218c0dc",
-          "validator_2_validator_agree": "c9a78b606e35a2e360dae0122a34b2f19691e9c8ba00c0d1f6508a005218c0dc"
+          "leader": "8b66f52024638e9337a69fbd5e872edb054f0a49aefe2532b3dfa4cf80f125f8",
+          "validator_1_validator_agree": "8b66f52024638e9337a69fbd5e872edb054f0a49aefe2532b3dfa4cf80f125f8",
+          "validator_3_validator_agree": "8b66f52024638e9337a69fbd5e872edb054f0a49aefe2532b3dfa4cf80f125f8"
         },
         "execution": "FINISHED_WITH_RETURN",
         "votes": {
+          "0x05d8aFc66B515038712537f99cAAEA73d16f0007": "agree",
           "0x1dA3a7de8EA65A318bf88Eb63d3dC55295Dd257E": "idle",
-          "0x5A4230B920b18c4AFD3A28F99Eae669B7F2cdC1e": "agree",
-          "0x5cDf4BdDeEDa0e32ED596b94f69AcC0FbB57f264": "agree",
-          "0xE52dDB85587585930b1E5f1Fe88fef21CcA49829": "agree",
-          "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "idle"
+          "0xa0435f618c1F27B254998018AEa8Da5C77187852": "idle",
+          "0xcbC79F96B7A275b23EE64d80a98325107F6E1b77": "agree",
+          "0xf13c3DfE38C8E206C33F750C24a1b043b63Cb810": "agree"
         },
         "tally": {
-          "idle": 2,
-          "agree": 3
+          "agree": 3,
+          "idle": 2
         },
         "tx_execution_hash": ""
       },
@@ -201,6 +206,7 @@
         "attestation_id": 3,
         "canonical_url": "https://w3.org/TR/did-core",
         "content_kind": "html",
+        "is_raw_hash_verified": false,
         "normalized_sha256": "62c9cc43f1027cda3af834bc033ef672c2c59737ca15bc9627f7fb2c6e303a7e",
         "raw_sha256": "5e44345740d9bfaa852d3b66c57e98c9beb6c5bf6083b0126dd5daac377b9993",
         "refunded": "0",
@@ -229,7 +235,7 @@
         "total_received": "150000000000000000",
         "balance_drift": "0"
       },
-      "block_time_utc": "2026-10-03T16:54:43+00:00",
+      "block_time_utc": "2026-10-03T17:46:16+00:00",
       "outcome": "ATTESTED",
       "attestation": {
         "attestation_id": 3,
@@ -237,11 +243,12 @@
         "canonical_url": "https://w3.org/TR/did-core",
         "content_kind": "html",
         "fee_paid": "50000000000000000",
+        "is_raw_hash_verified": false,
         "normalized_sha256": "62c9cc43f1027cda3af834bc033ef672c2c59737ca15bc9627f7fb2c6e303a7e",
         "raw_sha256": "5e44345740d9bfaa852d3b66c57e98c9beb6c5bf6083b0126dd5daac377b9993",
         "size_bytes": 730300,
         "text_snippet": "Decentralized Identifiers (DIDs) v1.0 Core architecture, data model, and representations W3C Recommendation 19 July 2022 More details about this document This version: https://www.w3.org/TR/2022/REC-d",
-        "timestamp": 1791046470,
+        "timestamp": 1791049562,
         "title": "Decentralized Identifiers (DIDs) v1.0"
       },
       "hashes": {
@@ -254,20 +261,21 @@
     {
       "case": "Dead link -- HTTP 404 on docs.python.org (80% refund, 20% retained)",
       "url": "https://docs.python.org/3/evidencenotary-nonexistent-page-404.html",
-      "tx_hash": "0x174118543d5df78f81334cc587b947cd64162091d21d837c8370c0a6e0c4dc02",
+      "tx_hash": "0xf8081527d8320a97a9228cc5efc1293045c100ba229536730d30180cf0b046db",
       "consensus": {
         "result": "MAJORITY_AGREE",
         "state_hashes": {
-          "leader": "190e69066cc60566aee6d14f38adb22eb19dc5269369bd8d5e0b475d499c3b27",
-          "validator_1_validator_agree": "190e69066cc60566aee6d14f38adb22eb19dc5269369bd8d5e0b475d499c3b27",
-          "validator_2_validator_agree": "190e69066cc60566aee6d14f38adb22eb19dc5269369bd8d5e0b475d499c3b27"
+          "leader": "0f6676261a800d6adb222f8cdb2821f93ffe2561ea86c78cd94446110562ea78",
+          "validator_0_validator_agree": "0f6676261a800d6adb222f8cdb2821f93ffe2561ea86c78cd94446110562ea78",
+          "validator_1_validator_agree": "0f6676261a800d6adb222f8cdb2821f93ffe2561ea86c78cd94446110562ea78",
+          "validator_2_validator_agree": "0f6676261a800d6adb222f8cdb2821f93ffe2561ea86c78cd94446110562ea78"
         },
         "execution": "FINISHED_WITH_RETURN",
         "votes": {
           "0x05d8aFc66B515038712537f99cAAEA73d16f0007": "agree",
-          "0x5cDf4BdDeEDa0e32ED596b94f69AcC0FbB57f264": "agree",
-          "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "idle",
-          "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "agree",
+          "0x6760cDeC573cf38568C59872ee48B6fED41F8A4c": "agree",
+          "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "agree",
+          "0xE52dDB85587585930b1E5f1Fe88fef21CcA49829": "idle",
           "0xcF5Fd792Df0Dc9d297af75c82B4A0011e8FA1A4A": "idle"
         },
         "tally": {
@@ -304,7 +312,7 @@
         "total_received": "200000000000000000",
         "balance_drift": "0"
       },
-      "block_time_utc": "2026-10-03T16:55:04+00:00",
+      "block_time_utc": "2026-10-03T17:46:39+00:00",
       "outcome": "AMBIGUOUS_VOID",
       "refund": {
         "claimable_before": "0",
@@ -315,21 +323,22 @@
     {
       "case": "Oversized payload -- 10 MiB file, over the 4 MiB cap (no revert; 80% refund, 20% retained)",
       "url": "https://proof.ovh.net/files/10Mb.dat",
-      "tx_hash": "0x5f5b18ac0096de46a089c07f55c1b7895ca917f48cff03d0e5ed21df9180c3f1",
+      "tx_hash": "0xfef172148241ece891dd862bc6e16e5ed94fafeda71ef488941f69baac5cffb6",
       "consensus": {
         "result": "MAJORITY_AGREE",
         "state_hashes": {
-          "leader": "6b1b7549f3377e962cf09b2a2035c7391ecfd8fc37dbd0c5aed444d44a7eedb8",
-          "validator_0_validator_agree": "6b1b7549f3377e962cf09b2a2035c7391ecfd8fc37dbd0c5aed444d44a7eedb8",
-          "validator_2_validator_agree": "6b1b7549f3377e962cf09b2a2035c7391ecfd8fc37dbd0c5aed444d44a7eedb8"
+          "leader": "89781bf43af3731b965f4d5591364ee93bfac6a55827d2c515941ef62ba1131a",
+          "validator_0_validator_agree": "89781bf43af3731b965f4d5591364ee93bfac6a55827d2c515941ef62ba1131a",
+          "validator_1_validator_agree": "89781bf43af3731b965f4d5591364ee93bfac6a55827d2c515941ef62ba1131a",
+          "validator_3_validator_agree": "89781bf43af3731b965f4d5591364ee93bfac6a55827d2c515941ef62ba1131a"
         },
         "execution": "FINISHED_WITH_RETURN",
         "votes": {
           "0x1dA3a7de8EA65A318bf88Eb63d3dC55295Dd257E": "agree",
-          "0x5A4230B920b18c4AFD3A28F99Eae669B7F2cdC1e": "idle",
-          "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "idle",
-          "0xA793D9dc0ED9edC1f9F732bB68b5D3AFA934F52D": "agree",
-          "0xcF5Fd792Df0Dc9d297af75c82B4A0011e8FA1A4A": "agree"
+          "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "agree",
+          "0x8D32eb5D0207f7E230C45e7BF0D14B2ED5DA3028": "agree",
+          "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "idle",
+          "0xf13c3DfE38C8E206C33F750C24a1b043b63Cb810": "idle"
         },
         "tally": {
           "agree": 3,
@@ -365,7 +374,7 @@
         "total_received": "250000000000000000",
         "balance_drift": "0"
       },
-      "block_time_utc": "2026-10-03T16:55:29+00:00",
+      "block_time_utc": "2026-10-03T17:47:07+00:00",
       "outcome": "UNREACHABLE_OVERSIZE",
       "refund": {
         "claimable_before": "40000000000000000",
@@ -375,26 +384,26 @@
     }
   ],
   "pull_withdraw": {
-    "tx_hash": "0x3e960216f99eb54c1c0caf1ecec4d788030abaac7490cb252d686f92b1aa4c2b",
+    "tx_hash": "0x617a7a7cf4a5d9c27ab1e28c0d98d8c899f66c63c9f010652b64364a17842dc3",
     "consensus": {
       "result": "MAJORITY_AGREE",
       "state_hashes": {
-        "leader": "5d4acf25ba7b6f97dbcca6530cd960c939989c5cde8eeea0c090fc28aaa42e02",
-        "validator_1_validator_agree": "5d4acf25ba7b6f97dbcca6530cd960c939989c5cde8eeea0c090fc28aaa42e02",
-        "validator_2_validator_agree": "5d4acf25ba7b6f97dbcca6530cd960c939989c5cde8eeea0c090fc28aaa42e02",
-        "validator_3_validator_agree": "5d4acf25ba7b6f97dbcca6530cd960c939989c5cde8eeea0c090fc28aaa42e02"
+        "leader": "9b8821ef0dd697337e5911ec28be78d44d06320ed69eef6c170047c0f4b8ac11",
+        "validator_0_validator_agree": "9b8821ef0dd697337e5911ec28be78d44d06320ed69eef6c170047c0f4b8ac11",
+        "validator_1_validator_agree": "9b8821ef0dd697337e5911ec28be78d44d06320ed69eef6c170047c0f4b8ac11",
+        "validator_2_validator_agree": "9b8821ef0dd697337e5911ec28be78d44d06320ed69eef6c170047c0f4b8ac11"
       },
       "execution": "FINISHED_WITH_RETURN",
       "votes": {
-        "0x05d8aFc66B515038712537f99cAAEA73d16f0007": "agree",
-        "0x1dA3a7de8EA65A318bf88Eb63d3dC55295Dd257E": "agree",
-        "0xE4E106086F167D75E2270fa5f3680f6ac598d179": "agree",
-        "0xcF5Fd792Df0Dc9d297af75c82B4A0011e8FA1A4A": "idle",
-        "0xcbC79F96B7A275b23EE64d80a98325107F6E1b77": "idle"
+        "0xA793D9dc0ED9edC1f9F732bB68b5D3AFA934F52D": "idle",
+        "0xE52dDB85587585930b1E5f1Fe88fef21CcA49829": "agree",
+        "0xEEcEC5D1E07Ee40f5cb85aF922178Dc01278013C": "agree",
+        "0xcbC79F96B7A275b23EE64d80a98325107F6E1b77": "idle",
+        "0xf13c3DfE38C8E206C33F750C24a1b043b63Cb810": "agree"
       },
       "tally": {
-        "agree": 3,
-        "idle": 2
+        "idle": 2,
+        "agree": 3
       },
       "tx_execution_hash": ""
     },
@@ -421,25 +430,25 @@
       "balance_drift": "80000000000000000"
     },
     "claimable_after": "0",
-    "caller_balance_before": "746854776999960843",
-    "caller_balance_after": "846566286999968726"
+    "caller_balance_before": "546036385249958612",
+    "caller_balance_after": "595826797749962142"
   },
   "sweep_vault": {
-    "tx_hash": "0x2ac679d0e4b2d547680a9e8873e552cdef3425086a119fd4e13c48e922949c43",
+    "tx_hash": "0x6736ef9558fb3bb898c3cb880814ccdb4b07534588053c8204cd1f0b7a586cff",
     "consensus": {
       "result": "MAJORITY_AGREE",
       "state_hashes": {
-        "leader": "349befa40d0890490f9ba5051a1dbf45c4ee93414bbc560a6ab483cb0e451f9a",
-        "validator_0_validator_agree": "349befa40d0890490f9ba5051a1dbf45c4ee93414bbc560a6ab483cb0e451f9a",
-        "validator_2_validator_agree": "349befa40d0890490f9ba5051a1dbf45c4ee93414bbc560a6ab483cb0e451f9a",
-        "validator_3_validator_agree": "349befa40d0890490f9ba5051a1dbf45c4ee93414bbc560a6ab483cb0e451f9a"
+        "leader": "3dc9e284469d7b57452b5962394ab57b91e57769e336448897bf5b68b53e6307",
+        "validator_1_validator_agree": "3dc9e284469d7b57452b5962394ab57b91e57769e336448897bf5b68b53e6307",
+        "validator_2_validator_agree": "3dc9e284469d7b57452b5962394ab57b91e57769e336448897bf5b68b53e6307",
+        "validator_3_validator_agree": "3dc9e284469d7b57452b5962394ab57b91e57769e336448897bf5b68b53e6307"
       },
       "execution": "FINISHED_WITH_RETURN",
       "votes": {
-        "0x05d8aFc66B515038712537f99cAAEA73d16f0007": "agree",
         "0x1dA3a7de8EA65A318bf88Eb63d3dC55295Dd257E": "agree",
-        "0xE52dDB85587585930b1E5f1Fe88fef21CcA49829": "agree",
-        "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "idle",
+        "0x5A4230B920b18c4AFD3A28F99Eae669B7F2cdC1e": "agree",
+        "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "idle",
+        "0xE4E106086F167D75E2270fa5f3680f6ac598d179": "agree",
         "0xf13c3DfE38C8E206C33F750C24a1b043b63Cb810": "idle"
       },
       "tally": {
@@ -481,5 +490,5 @@
     "total_paid_out": "250000000000000000",
     "total_received": "250000000000000000"
   },
-  "interacted_at": "2026-10-03T16:57:07+00:00"
+  "interacted_at": "2026-10-03T17:48:54+00:00"
 }

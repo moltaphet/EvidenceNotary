@@ -481,9 +481,24 @@ def _read_equivalent(leader: dict, mine: dict) -> bool:
     return True
 
 
+def is_raw_hash_verified(kind: str) -> bool:
+    """True only for binary media. There every validator compares `raw_sha256`
+    (it is the sole hash), so it is a Byzantine-consensus proof. For HTML / text
+    consensus is bounded to the normalized text (`normalized_sha256`, `title`,
+    `text_snippet`); `raw_sha256` and `size_bytes` are the LEADER'S reported
+    telemetry about markup that carries per-request noise, and are informational."""
+    return kind == KIND_BINARY
+
+
 @allow_storage
 @dataclass
 class Attestation:
+    """On-chain record. Consensus-proven fields: canonical_url, normalized_sha256,
+    text_snippet, title and content_kind (all html / text), plus raw_sha256 for
+    binary. Leader-reported telemetry (html / text only): raw_sha256, size_bytes
+    -- see `is_raw_hash_verified`. Chain-supplied: timestamp, attester, fee_paid.
+    """
+
     attestation_id: u256
     canonical_url: str
     raw_sha256: str  # hex SHA-256 of exact bytes; validator-verified for binary only, informational for html/text
@@ -686,6 +701,7 @@ class EvidenceNotary(gl.contract.Contract):
             "attestation_id": int(att_id),
             "canonical_url": canon,
             "raw_sha256": result["raw"],
+            "is_raw_hash_verified": is_raw_hash_verified(result["kind"]),
             "normalized_sha256": result["norm"],
             "content_kind": result["kind"],
             "title": result["title"],
@@ -756,10 +772,15 @@ class EvidenceNotary(gl.contract.Contract):
         return int(datetime.now(timezone.utc).timestamp())
 
     def _as_dict(self, a: Attestation) -> dict:
+        """Record as a dict. `is_raw_hash_verified` is True only for binary media;
+        for html / text, `raw_sha256` and `size_bytes` are leader-reported
+        telemetry, while `normalized_sha256` and `text_snippet` are validator-
+        consensus proofs."""
         return {
             "attestation_id": int(a.attestation_id),
             "canonical_url": a.canonical_url,
             "raw_sha256": a.raw_sha256,
+            "is_raw_hash_verified": is_raw_hash_verified(a.content_kind),
             "normalized_sha256": a.normalized_sha256,
             "content_kind": a.content_kind,
             "size_bytes": int(a.size_bytes),

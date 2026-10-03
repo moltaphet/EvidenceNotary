@@ -13,7 +13,7 @@ There is no LLM in the consensus path: agreement is a deterministic comparison o
 prompt cannot sway it.
 
 * Contract: [`contracts/evidence_notary.py`](contracts/evidence_notary.py)
-* Tests: [`tests/test_evidence_notary.py`](tests/test_evidence_notary.py) (194 tests, direct mode)
+* Tests: [`tests/test_evidence_notary.py`](tests/test_evidence_notary.py) (196 tests, direct mode)
 * Scripts: [`scripts/deploy.py`](scripts/deploy.py), [`scripts/interact_live.py`](scripts/interact_live.py)
 * Live record: [`deployments/studio-next.json`](deployments/studio-next.json)
 
@@ -28,11 +28,11 @@ prompt cannot sway it.
 
 | | |
 |---|---|
-| Contract | `0x94072007ec285cA65c5f84E7DF2B15b0fBD34432` |
-| Explorer | https://explorer-studio-next.genlayer.com/address/0x94072007ec285cA65c5f84E7DF2B15b0fBD34432 |
-| Deploy tx | `0x5993dcd04caeb151a58cd1df597f2816047e9ee0ae7a993e8da1ff977bdf0bb2` -- FINISHED_WITH_RETURN, consensus **MAJORITY_AGREE** |
+| Contract | `0x60de2c8CC2F647a25a39827308E0F2F5067dc35b` |
+| Explorer | https://explorer-studio-next.genlayer.com/address/0x60de2c8CC2F647a25a39827308E0F2F5067dc35b |
+| Deploy tx | `0xa1c5db77d9efd68f4a3b06e4686b220434678e82d913bcc48189df4568784aa8` -- FINISHED_WITH_RETURN, consensus **MAJORITY_AGREE** |
 | Runner | `py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng` |
-| Source SHA-256 | `5c197cadbb7986469b26ab66be5e7024dacc917ed920d4b7d94514c03dacbf40` |
+| Source SHA-256 | `c41287644150b8ce4d1278245e6a5b3f0fd6f2f98e04bc417e4a6e7574413f13` |
 | Governor | `0x79D0B199047e568B39D8c422B66c693A7F9414b1` |
 | Fee | 0.05 GEN (`50000000000000000` atto); failed or oversize fetch: 0.01 GEN kept, 0.04 GEN refundable |
 
@@ -41,18 +41,18 @@ per-validator votes and state hashes are in `deployments/studio-next.json`):
 
 | Case | URL | Transaction | Validator consensus | Outcome / hashes | Contract state hash (leader == agreeing validators) |
 |---|---|---|---|---|---|
-| RFC 9000 -- QUIC transport specification | `https://rfc-editor.org/rfc/rfc9000` | `0x34983caaad6155e3798f6564ebcd70d50e1a34481f5fed87818b7e79d103949c` | MAJORITY_AGREE (3 agree / 2 idle) | ATTESTED #1 (html, 2,989,622 B)<br>raw (informational) `77e1e7dfc23a88f959f2189af224630a18fc1f5a08ce2f8480bca420af3d75e3`<br>normalized (canon) `9307a8e848afd9d2cb79b10bee068f2ed76b7ece40ee9f42f518554b2cf7b637` | `3723c4773e8f3417b0fc5881e8d8f30569455c5a8082db60b8d325d069eb71c6` |
-| Python 3.13 release notes | `https://docs.python.org/3/whatsnew/3.13.html` | `0x3c35dbc7d2f1da87bba61518ed42f8989fe86fb19aedc29bed064773c3e20762` | MAJORITY_AGREE (3 agree / 2 idle) | ATTESTED #2 (html, 492,386 B)<br>raw (informational) `7206ee86ff777e1a0fe4b318fc32f4608972d86068cfe3e8f3458cb2807735c5`<br>normalized (canon) `b19690d381e9c84a7e926f0f5f5b9559b0690627c90f970032ea9da949494143` | `bb0e2ff576cc921d95c43034f865a915a5179a33002b14f1800f11cffc82b9c8` |
-| W3C Decentralized Identifiers (DID Core) | `https://w3.org/TR/did-core/` | `0xa42822c62fabaf83b6ca8e2e30a04d9997772b1aeb494ec08ac78492155ac3c1` | MAJORITY_AGREE (3 agree / 2 idle) | ATTESTED #3 (html, 730,300 B)<br>raw (informational) `5e44345740d9bfaa852d3b66c57e98c9beb6c5bf6083b0126dd5daac377b9993`<br>normalized (canon) `62c9cc43f1027cda3af834bc033ef672c2c59737ca15bc9627f7fb2c6e303a7e` | `c9a78b606e35a2e360dae0122a34b2f19691e9c8ba00c0d1f6508a005218c0dc` |
-| Dead link -- HTTP 404 on docs.python.org (80% refund, 20% retained) | `https://docs.python.org/3/evidencenotary-nonexistent-page-404.html` | `0x174118543d5df78f81334cc587b947cd64162091d21d837c8370c0a6e0c4dc02` | MAJORITY_AGREE (3 agree / 2 idle) | `AMBIGUOUS_VOID`: 0.04 GEN -> `claimable_credits`, 0.01 GEN -> `protocol_vault`, no revert | `190e69066cc60566aee6d14f38adb22eb19dc5269369bd8d5e0b475d499c3b27` |
-| Oversized payload -- 10 MiB file, over the 4 MiB cap (no revert; 80% refund, 20% retained) | `https://proof.ovh.net/files/10Mb.dat` | `0x5f5b18ac0096de46a089c07f55c1b7895ca917f48cff03d0e5ed21df9180c3f1` | MAJORITY_AGREE (3 agree / 2 idle) | `UNREACHABLE_OVERSIZE`: 0.04 GEN -> `claimable_credits`, 0.01 GEN -> `protocol_vault`, no revert | `6b1b7549f3377e962cf09b2a2035c7391ecfd8fc37dbd0c5aed444d44a7eedb8` |
+| RFC 9000 -- QUIC transport specification | `https://rfc-editor.org/rfc/rfc9000` | `0xfc17c802215c078338e6cd7b842a29aef0de7bfc7c2739605391a9b0eb2a86e4` | MAJORITY_AGREE (3 agree / 2 idle) | ATTESTED #1 (html, 2,989,622 B, `is_raw_hash_verified=false`)<br>normalized (consensus-proven) `9307a8e848afd9d2cb79b10bee068f2ed76b7ece40ee9f42f518554b2cf7b637`<br>raw (leader-reported) `77e1e7dfc23a88f959f2189af224630a18fc1f5a08ce2f8480bca420af3d75e3` | `d4bf5eaa399635f8aca45aa81f44b53bb4281f873df229a59e70436d1708b947` |
+| Python 3.13 release notes | `https://docs.python.org/3/whatsnew/3.13.html` | `0x1947e1cb5c0079d1842491f5f66ddbd1e425a695caf1fa456be9fca21279aca0` | MAJORITY_AGREE (3 agree / 2 idle) | ATTESTED #2 (html, 492,386 B, `is_raw_hash_verified=false`)<br>normalized (consensus-proven) `b19690d381e9c84a7e926f0f5f5b9559b0690627c90f970032ea9da949494143`<br>raw (leader-reported) `7206ee86ff777e1a0fe4b318fc32f4608972d86068cfe3e8f3458cb2807735c5` | `a2ff4680a174c6576fe652e8bcd40188cae5085fd49a14e0a42700eb1f9b3912` |
+| W3C Decentralized Identifiers (DID Core) | `https://w3.org/TR/did-core/` | `0xaf5b8a1f98ed92445423da7f4e0128be97135ba95eae97ae0c874857f85a61d9` | MAJORITY_AGREE (3 agree / 2 idle) | ATTESTED #3 (html, 730,300 B, `is_raw_hash_verified=false`)<br>normalized (consensus-proven) `62c9cc43f1027cda3af834bc033ef672c2c59737ca15bc9627f7fb2c6e303a7e`<br>raw (leader-reported) `5e44345740d9bfaa852d3b66c57e98c9beb6c5bf6083b0126dd5daac377b9993` | `8b66f52024638e9337a69fbd5e872edb054f0a49aefe2532b3dfa4cf80f125f8` |
+| Dead link -- HTTP 404 on docs.python.org (80% refund, 20% retained) | `https://docs.python.org/3/evidencenotary-nonexistent-page-404.html` | `0xf8081527d8320a97a9228cc5efc1293045c100ba229536730d30180cf0b046db` | MAJORITY_AGREE (3 agree / 2 idle) | `AMBIGUOUS_VOID`: 0.04 GEN -> `claimable_credits`, 0.01 GEN -> `protocol_vault`, no revert | `0f6676261a800d6adb222f8cdb2821f93ffe2561ea86c78cd94446110562ea78` |
+| Oversized payload -- 10 MiB file, over the 4 MiB cap (no revert; 80% refund, 20% retained) | `https://proof.ovh.net/files/10Mb.dat` | `0xfef172148241ece891dd862bc6e16e5ed94fafeda71ef488941f69baac5cffb6` | MAJORITY_AGREE (3 agree / 2 idle) | `UNREACHABLE_OVERSIZE`: 0.04 GEN -> `claimable_credits`, 0.01 GEN -> `protocol_vault`, no revert | `89781bf43af3731b965f4d5591364ee93bfac6a55827d2c515941ef62ba1131a` |
 
 Follow-up transactions:
 
 | Step | Transaction | Consensus | Effect |
 |---|---|---|---|
-| `pull_withdraw` (both refunds) | `0x3e960216f99eb54c1c0caf1ecec4d788030abaac7490cb252d686f92b1aa4c2b` | MAJORITY_AGREE | `claimable_credits` 0.08 -> 0 GEN; caller received the payout |
-| `sweep_vault` (governor) | `0x2ac679d0e4b2d547680a9e8873e552cdef3425086a119fd4e13c48e922949c43` | MAJORITY_AGREE | vault 0.17 -> 0 GEN (3 fees + two 0.01 GEN penalties) |
+| `pull_withdraw` (both refunds) | `0x617a7a7cf4a5d9c27ab1e28c0d98d8c899f66c63c9f010652b64364a17842dc3` | MAJORITY_AGREE | `claimable_credits` 0.08 -> 0 GEN; caller received the payout |
+| `sweep_vault` (governor) | `0x6736ef9558fb3bb898c3cb880814ccdb4b07534588053c8204cd1f0b7a586cff` | MAJORITY_AGREE | vault 0.17 -> 0 GEN (3 fees + two 0.01 GEN penalties) |
 
 Every consensus round reached `MAJORITY_AGREE` with 3 agreeing validators (the other two voted `idle`).
 The recorded `size_bytes` equals the byte length a plain `curl` receives for each page (RFC 9000 is
@@ -83,7 +83,7 @@ deployment that did not finish with `FINISHED_WITH_RETURN`).
 
 Attestation record: `attestation_id`, `canonical_url`, `raw_sha256` (hex SHA-256 of the exact response
 bytes; **informational metadata for HTML / text**, validator-verified for binary), `normalized_sha256` (hex SHA-256 of the normalized text; **equal to `raw_sha256` for binary media**),
-`content_kind` (`html` | `text` | `binary`), `size_bytes`, `title`, `text_snippet` (first 200 characters of the
+`content_kind` (`html` | `text` | `binary`), `is_raw_hash_verified` (`true` only for `binary`), `size_bytes`, `title`, `text_snippet` (first 200 characters of the
 verified text; empty for binary), `timestamp` (block time, unix seconds), `attester` (`msg.sender`, lowercase
 hex), `fee_paid`. There is no `is_truncated` flag because nothing is ever truncated: an oversize body is rejected as `UNREACHABLE_OVERSIZE` and recorded as nothing.
 
@@ -281,11 +281,11 @@ direct-mode test `test_ledger_holds_even_if_chain_never_debits_payouts` pins the
 ```
 python3.12 -m venv .venv && . .venv/bin/activate
 pip install --pre genlayer-test==0.30.0rc2 genlayer-py==0.19.0rc2 genvm-linter==0.11.1rc2 pytest
-pytest -q                                     # 194 tests, ~3 min, no network
+pytest -q                                     # 196 tests, ~4 min, no network
 genvm-lint check contracts/evidence_notary.py # 0 errors
 ```
 
-194 test cases (far more than 160 assertions: the canonicalizer tests alone loop over 28 accepted and
+196 test cases (far more than 160 assertions: the canonicalizer tests alone loop over 28 accepted and
 97 rejected inputs). Coverage: canonicalization and SSRF-style bypasses; deterministic extraction; deduplication;
 17 HTTP failure statuses and 6 non-document bodies; exact-fee enforcement; validator agreement / disagreement via
 `run_validator`; governance; and the accounting invariants (S) and (L) after every step of mixed attest /
@@ -299,6 +299,7 @@ hardening round:
 * Binary fixtures that collide under UTF-8 `replace` get distinct `raw_sha256 == normalized_sha256` for 7 media
   types and with no `Content-Type`; HTML raw hash tracks every byte while the normalized hash ignores a comment.
 * A body of exactly 4 MiB is accepted; 4 MiB + 1 and +1000 do **not** revert: status `UNREACHABLE_OVERSIZE`, 0.01 GEN to the vault, 0.04 GEN to credits, nothing recorded (`test_oversized_payload_incurs_20_percent_penalty_without_revert`); oversize HTML is penalized identically; five oversize attempts cost 0.05 GEN; validators agree on oversize as a failure class and disagree if one sees a small file.
+* `is_raw_hash_verified` is `false` for html and text and `true` for binary, in the `attest` return and in `get_attestation` / `get_latest_attestation`, and always equals whether `verify_attestation` accepts the raw hash (`test_is_raw_hash_verified_flag_by_content_kind`, `test_flag_agrees_with_what_verify_attestation_accepts`).
 * `verify_attestation` checks `normalized_sha256` for HTML / text and rejects the leader's raw hash (`test_verify_attestation_checks_normalized_hash_for_html`), checks `raw_sha256` for binary.
 * A doctored snippet (truncated, extended, unrelated, empty or missing) fails validator consensus even when kind, hashes and title agree (`test_snippet_mismatch_fails_validator_consensus`); a raw-hash difference alone does not fail HTML consensus.
 * A failed fetch (403, 404, 429, 500, 503, unmocked host) moves exactly 0.01 GEN to the vault and 0.04 GEN to
@@ -340,68 +341,86 @@ Revision 3
 | A | The leader's `raw_sha256` of an HTML page was unvetted yet accepted by `verify_attestation`, and the leader-supplied snippet was not covered by consensus | `verify_attestation` checks `normalized_sha256` for html / text and `raw_sha256` only for binary; the snippet is part of the equivalence check; `raw_sha256` documented as informational for HTML | `test_verify_attestation_checks_normalized_hash_for_html`, `test_verify_attestation_text_kind_uses_normalized_hash`, `test_verify_attestation_checks_raw_hash_for_binary`, `test_snippet_mismatch_fails_validator_consensus` |
 | B | Oversized payloads reverted with a full refund, leaving a free bandwidth-scraping vector | No revert: `UNREACHABLE_OVERSIZE`, 0.01 GEN kept, 0.04 GEN refundable, `ERR_PAYLOAD_TOO_LARGE` removed | `test_oversized_payload_incurs_20_percent_penalty_without_revert`, `test_oversize_spam_is_not_free`, live oversize case in section 1 (`0x5f5b18ac…`) |
 
+Revision 4 (metadata disclosure and scope)
+
+| # | Finding | Fix | Evidence |
+|---|---|---|---|
+| C | Unverified leader metadata on HTML records was not flagged in the record itself | `is_raw_hash_verified` in every record (`true` only for binary); docstrings and 8.5 separate consensus proofs from leader-reported telemetry (`raw_sha256`, `size_bytes`) | `test_is_raw_hash_verified_flag_by_content_kind`, `test_flag_agrees_with_what_verify_attestation_accepts` |
+| D | Scope and trust assumptions only partly stated | Section 8 states the static-scope requirement, validator egress reliance (`localtest.me`), cloaking by validator subnet, and time-T semantics | section 8 |
+
 Operational note found while redeploying: the first line of the contract (`# v0.1.0`) is the **GenVM version
 tag**, not a contract revision; bumping it makes the runner reject the contract as `malformed_runner` even
 though the linter and direct tests pass. `deploy.py` aborts instead of recording a deployment whose
 execution result is not `FINISHED_WITH_RETURN`.
 
-## 8. Known structural boundaries (disclosures)
+## 8. System boundaries and security assumptions
 
-These are properties of attesting the open web from a consensus network. They are not bugs the contract can
-close, and the protocol does not claim to.
+These are properties of attesting the open web from a consensus network. They are scope statements, not
+bugs the contract can close, and the protocol does not claim otherwise.
 
-### 8.1 Availability trade-off: full-DOM extraction
+### 8.1 Static scope requirement
 
-The protocol hashes **all** rendered body text, in order. It deliberately gives up consensus on pages whose
-visible text varies per request -- rotating text ads, "recommended for you" blocks, countdowns, live counters,
-personalized banners -- in exchange for one guarantee: nothing on the page can be omitted from what was
-notarized. A boilerplate filter would restore availability on those pages, but it also decides, invisibly, which
-words do not count, and a price, warranty, clause or disclaimer can sit in exactly the markup such a filter
-discards. The intended use is documents that are supposed to be immutable and byte-stable for readers: official
-specifications, legal terms, PEPs, RFCs, standards and whitepapers. On a noisy page the failure mode is a
-disagreement round that retries (and, if the noise never settles, a failed attestation that costs the 0.01 GEN
-penalty), never a notarization of a partial document. For noisy pages, attest the stable asset instead (the PDF,
-a versioned release file, a content-addressed copy).
+**EvidenceNotary targets immutable documents:** RFCs, PEPs, W3C and other standards, legal terms and policies,
+academic preprints, whitepapers. It does not target live, personalized or ad-supported pages.
 
-### 8.2 Server IP cloaking and what an attestation proves
+DOM normalization intentionally captures the **full document text, including navigation, headers and footers**
+(only `script`, `style`, `noscript`, `svg`, `canvas` and `<head>` are excluded), so that the notarized text is
+the complete legal text with nothing a heuristic decided to leave out. A clause, price or disclaimer can sit in exactly
+the markup a boilerplate filter would discard.
 
-A web server may return different content depending on who asks: source IP, geography, `User-Agent`, cookies, or
-by recognizing validator infrastructure. Validators can therefore agree on a page that a user, regulator or
-counterparty would never see, and a hostile publisher can serve the validators one document and everyone else
-another. An attestation proves **what the validator set received from that URL at that time**, not what any other
-client receives. Mitigations outside the contract: attest content you control or that is served from neutral
-infrastructure; publish content-addressed copies (IPFS, versioned release assets) and attest those; compare with an
-independent off-chain fetch before relying on a hash; treat a single attestation of an untrusted publisher as one
-data point.
+The consequence is stated plainly: **a dynamic page with rotating ads, trackers, personalized blocks, counters or
+countdowns will not reach validator consensus**, because its visible text differs between independent fetches. The
+failure mode is a disagreement round that retries and, if the noise never settles, a failed attestation that costs
+the 0.01 GEN penalty -- never the notarization of a partial document. For a noisy page, attest the stable asset
+instead (the PDF, a versioned release file, a content-addressed copy).
 
-### 8.3 SSRF: URL-level checks only, DNS is out of scope
+### 8.2 DNS, SSRF and validator egress
 
-The canonicalizer (2.2) blocks the URL-level routes to internal targets: non-https, userinfo, ports other than 443,
+The canonicalizer (2.2) blocks URL-level routes to internal targets: non-https, userinfo, ports other than 443,
 IPv6 literals, obfuscated numeric hosts (octal / hex / integer / short), private, loopback, link-local, CGNAT and
-reserved IPv4 ranges, local suffixes, encoded dots and slashes, and fragments. It is a **syntactic** filter and the
+reserved IPv4 ranges, local suffixes, encoded dots and slashes, and fragments. It is a **syntactic** filter, and a
 contract cannot resolve DNS. A **public hostname that resolves to a private address passes it**: `localtest.me`
-(and every `*.localtest.me`) resolves to `127.0.0.1`, and wildcard services such as `nip.io` / `sslip.io` map names
-to arbitrary IPs, so `https://anything.localtest.me/` is a valid-looking URL that points at loopback. The same holds
-for DNS rebinding and for an HTTP redirect from a public host to an internal one. The contract **relies on the
-validators' network egress controls** (blocking private, loopback, link-local and metadata ranges at the network
-layer, and re-checking the address after each redirect) for these. The residual exposure is bounded by construction:
-only two hashes, a title and a 200-character snippet of a response are ever stored, never the body, and an internal
-service would also have to answer validators over TLS on port 443.
+(and every `*.localtest.me`) resolves to `127.0.0.1`, and wildcard services such as `nip.io` / `sslip.io` map names to
+arbitrary IPs. DNS rebinding and an HTTP redirect from a public host to an internal one are the same class.
 
-### 8.4 Proof-of-existence at time T
+The contract therefore **relies on the validators' execution environment and its egress firewall** to prevent
+loopback, private-range, link-local and cloud-metadata access (`127.0.0.1` and everything `localtest.me` points at),
+including re-checking the destination address after every redirect. If an operator's validators lack such egress
+controls, an attacker can make them request internal endpoints. What bounds the residual exposure by construction:
+only two hashes, a title and a 200-character snippet are ever stored, never the body, and an internal service would
+also have to answer over TLS on port 443.
 
-`timestamp` is the block time at which the transaction was processed. An attestation proves that, **by time T**,
-the validator set, reading `canonical_url`, received a response whose normalized text hashes to
-`normalized_sha256` (or, for binary media, whose bytes hash to `raw_sha256`). It does **not** prove that the content
-existed *before* T, that it was published or authored at T (the page may be older), that it was the first version,
-that it is what any particular person saw, or that the URL served it at any other time. Two attestations of one
-URL bound a window, nothing more. The `latest` pointer does not weaken this -- every attestation is immutable and the
+### 8.3 Web cloaking
+
+A web server can serve different content depending on who asks -- source IP, geography, `User-Agent`, cookies -- and
+**can selectively serve alternative content to validator IP subnets**, which are discoverable. This is a physical
+limitation of any protocol that reads the web through a fixed set of fetchers, not something a contract can detect.
+Validators can therefore agree on a page that a user, regulator or counterparty would never see. An attestation proves
+**what the validator set received from that URL at that time**, not what any other client receives. Mitigations
+outside the contract: attest content you control or that is served from neutral infrastructure; publish
+content-addressed copies (IPFS, versioned release assets) and attest those; cross-check with an independent off-chain
+fetch before relying on a hash; treat one attestation of an untrusted publisher as one data point.
+
+### 8.4 Time-T proof semantics
+
+`timestamp` is the block time at which the transaction was processed. A notarization guarantees that **the content
+existed, as received by the validator set at that URL, at block timestamp T** -- it is a proof of existence at T. It is
+**not** the original publication date: the page may be years older, it may not have been the first version, and it
+does not show what any particular person saw or that the URL served it at any other time. Two attestations of one URL
+bound a window, nothing more. The `latest` pointer does not weaken this -- every attestation is immutable and the
 pointer only indexes them (section 2.5) -- but it is exactly why decisions must be keyed on a pinned id.
 
 ### 8.5 What is, and is not, validator-verified
 
+`is_raw_hash_verified` states this in every record: it is `true` **only** for binary media.
+
 | Field | html / text | binary |
 |---|---|---|
-| `normalized_sha256`, `title`, `text_snippet` | validated by every validator | `normalized == raw`, empty title / snippet |
-| `raw_sha256` | leader's measurement; informational | validated by every validator; canonical |
-| `size_bytes`, `timestamp`, `attester` | recorded by the contract / chain, not hash-compared | same |
+| `normalized_sha256`, `text_snippet`, `title`, `content_kind` | **Byzantine consensus proof**: compared by every validator | `normalized == raw`; title and snippet empty |
+| `raw_sha256` | **leader-reported telemetry**; informational; ignored by `verify_attestation` | **consensus proof**: compared by every validator; canonical |
+| `size_bytes` | **leader-reported telemetry** | length of the bytes whose hash validators agreed on |
+| `timestamp`, `attester`, `fee_paid` | supplied by the chain / contract, not hash-compared | same |
+
+Why `raw_sha256` is not consensus-bound on HTML: live markup carries per-request tokens, nonces and ad slots, so
+demanding byte-identical markup from independent fetches would make ordinary pages unattestable. Validators therefore
+vouch for the normalized text and the snippet derived from it.
