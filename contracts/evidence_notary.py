@@ -16,7 +16,8 @@
 # HTML / text document. For binary media (PDF, images, archives ...) the body is
 # never decoded and both hashes are the raw hash, so no byte-collision can hide
 # behind a lossy text decode. Nothing is silently truncated: a body over
-# MAX_PAYLOAD_BYTES reverts with ERR_PAYLOAD_TOO_LARGE.
+# MAX_PAYLOAD_BYTES is rejected as UNREACHABLE_OVERSIZE (penalized like any
+# failed fetch, see below).
 #
 # Failure path: a dead / 4xx / 5xx page does NOT revert. A revert would roll the
 # fee transfer back to the caller's wallet but leave no on-chain trace; the
@@ -60,7 +61,7 @@ FAILED_FEE_REFUNDED = ATTESTATION_FEE - FAILED_FEE_RETAINED  # 80% = 0.04 GEN
 SNIPPET_CHARS = 200
 MAX_URL_CHARS = 2048
 # Hard cap on the raw response body. 4 MiB, not 2 MiB: the RFC 9000 page this
-# protocol is expected to notarize is ~3.0 MB of HTML. Over the cap -> revert.
+# protocol is expected to notarize is ~3.0 MB of HTML. Over the cap -> penalized failure.
 MAX_PAYLOAD_BYTES = 4 * 1024 * 1024
 MIN_TEXT_CHARS = 40  # below this an HTML/text page carries no notarizable document
 
@@ -71,13 +72,16 @@ ERR_NOT_FOUND = "[EXPECTED] ERR_NOT_FOUND"
 ERR_UNAUTHORIZED = "[EXPECTED] ERR_UNAUTHORIZED"
 ERR_NOTHING = "[EXPECTED] ERR_NOTHING_TO_WITHDRAW"
 ERR_TRANSFER = "[EXPECTED] ERR_TRANSFER_FAILED"
-ERR_TOO_LARGE = "[EXPECTED] ERR_PAYLOAD_TOO_LARGE"
 
 # --- Attestation outcomes -----------------------------------------------------
 STATUS_ATTESTED = "ATTESTED"
 STATUS_UNREACHABLE = "UNREACHABLE"  # transport failure, timeout, HTTP 5xx / 429
 STATUS_AMBIGUOUS_VOID = "AMBIGUOUS_VOID"  # HTTP 4xx, empty or non-document page
-STATUS_TOO_LARGE = "PAYLOAD_TOO_LARGE"  # raw body over MAX_PAYLOAD_BYTES (reverts)
+STATUS_OVERSIZE = "UNREACHABLE_OVERSIZE"  # raw body over MAX_PAYLOAD_BYTES: unprocessable, penalized
+
+KIND_HTML = "html"
+KIND_TEXT = "text"
+KIND_BINARY = "binary"
 
 
 # ------------------------------------------------------------------------------
@@ -360,9 +364,9 @@ def _content_type(headers) -> str:
 
 
 def classify_content(ctype: str, body: bytes) -> str:
-    """"html", "text" or "binary". Binary bodies are never text-decoded."""
+    """KIND_HTML, KIND_TEXT or KIND_BINARY. Binary bodies are never text-decoded."""
     if ctype in _HTML_TYPES:
-        return "html"
+        return KIND_HTML
     if ctype.startswith("text/") or ctype in _TEXT_TYPES or (
         ctype.endswith("+json") or (ctype.endswith("+xml") and ctype != "image/svg+xml")
     ):
@@ -370,21 +374,21 @@ def classify_content(ctype: str, body: bytes) -> str:
         try:
             body.decode("utf-8")
         except UnicodeDecodeError:
-            return "binary"
-        return "text"
+            return KIND_BINARY
+        return KIND_TEXT
     if ctype != "":
-        return "binary"
+        return KIND_BINARY
     # No Content-Type: sniff. Valid UTF-8 is text (html if it looks like it).
     try:
         text = body.decode("utf-8")
     except UnicodeDecodeError:
-        return "binary"
+        return KIND_BINARY
     if "\x00" in text[:1024]:
-        return "binary"
+        return KIND_BINARY
     head = text[:20000].lower()
     if "<html" in head or "<!doctype html" in head or "<body" in head or "<title" in head:
-        return "html"
-    return "text"
+        return KIND_HTML
+    return KIND_TEXT
 
 
 # ------------------------------------------------------------------------------
@@ -419,18 +423,18 @@ def _read_page(canonical_url: str) -> dict:
     else:
         return fail(STATUS_AMBIGUOUS_VOID)
     if len(body) > MAX_PAYLOAD_BYTES:
-        return fail(STATUS_TOO_LARGE)
+        return fail(STATUS_OVERSIZE)
     if len(body) == 0:
         return fail(STATUS_AMBIGUOUS_VOID)
 
     raw = sha256_hex(body)
     kind = classify_content(_content_type(getattr(res, "headers", None) or {}), body)
-    if kind == "binary":
+    if kind == KIND_BINARY:
         # No decoding of any kind: both hashes are the hash of the exact bytes.
         return {"ok": True, "code": STATUS_ATTESTED, "kind": kind, "raw": raw, "norm": raw,
                 "title": "", "snippet": "", "size": len(body)}
     decoded = body.decode("utf-8", errors="replace")
-    if kind == "html":
+    if kind == KIND_HTML:
         doc = extract_html(decoded)
     else:
         doc = {"title": "", "text": normalize_text(decoded)}
@@ -452,8 +456,8 @@ def _read_page(canonical_url: str) -> dict:
 def _read_equivalent(leader: dict, mine: dict) -> bool:
     """Validator agreement predicate.
 
-    Successful reads must agree on content kind, the normalized hash and the
-    title; binary reads must additionally agree on the raw hash (it is their
+    Successful reads must agree on content kind, the normalized hash, the
+    title and the 200-character snippet; binary reads must additionally agree on the raw hash (it is their
     only hash). For HTML / text the raw hash is the leader's own measurement:
     live markup carries per-request tokens, so validators vouch for the
     normalized text, not for byte-identical markup. Failed reads must agree on
@@ -468,7 +472,11 @@ def _read_equivalent(leader: dict, mine: dict) -> bool:
         return False
     if leader.get("norm") != mine["norm"] or leader.get("title") != mine["title"]:
         return False
-    if mine["kind"] == "binary" and leader.get("raw") != mine["raw"]:
+    # The snippet is derived from the normalized text, so every honest validator
+    # computes the same one; a leader cannot attach an unvetted excerpt.
+    if leader.get("snippet") != mine["snippet"]:
+        return False
+    if mine["kind"] == KIND_BINARY and leader.get("raw") != mine["raw"]:
         return False
     return True
 
@@ -478,9 +486,9 @@ def _read_equivalent(leader: dict, mine: dict) -> bool:
 class Attestation:
     attestation_id: u256
     canonical_url: str
-    raw_sha256: str  # hex SHA-256 of the exact response bytes
+    raw_sha256: str  # hex SHA-256 of exact bytes; validator-verified for binary only, informational for html/text
     normalized_sha256: str  # hex SHA-256 of the normalized text (== raw for binary)
-    content_kind: str  # "html" | "text" | "binary"
+    content_kind: str  # KIND_HTML | KIND_TEXT | KIND_BINARY
     size_bytes: u256  # length of the raw response body
     title: str
     text_snippet: str  # first 200 characters of the verified text
@@ -574,9 +582,17 @@ class EvidenceNotary(gl.contract.Contract):
 
     @gl.public.view
     def verify_attestation(self, attestation_id: u256, expected_hash: str) -> bool:
-        """True iff the attestation exists and `expected_hash` equals its
-        `normalized_sha256` or its `raw_sha256` (hex SHA-256; a `0x` prefix and
-        letter case are not significant). For binary media both are the raw hash.
+        """True iff the attestation exists and `expected_hash` equals the hash that
+        VALIDATORS agreed on for its content kind (hex SHA-256; a `0x` prefix and
+        letter case are not significant):
+
+        * KIND_BINARY: `raw_sha256` (all validators compared it).
+        * KIND_HTML / KIND_TEXT: `normalized_sha256`, the consensus-verified text
+          hash. `raw_sha256` of an HTML page is the leader's own measurement of
+          markup that carries per-request noise; it is informational metadata and
+          is deliberately NOT accepted here, so an unvetted leader value can
+          never be treated as canon.
+
         This is the integration primitive: pin an `attestation_id`, then verify."""
         if attestation_id not in self.attestations:
             return False
@@ -584,7 +600,9 @@ class EvidenceNotary(gl.contract.Contract):
         if len(want) != 64:
             return False
         a = self.attestations[attestation_id]
-        return want == a.normalized_sha256 or want == a.raw_sha256
+        if a.content_kind == KIND_BINARY:
+            return want == a.raw_sha256
+        return want == a.normalized_sha256
 
     @gl.public.view
     def get_latest_attestation(self, url: str) -> dict:
@@ -611,7 +629,9 @@ class EvidenceNotary(gl.contract.Contract):
         consensus. Otherwise (UNREACHABLE / AMBIGUOUS_VOID) nothing is recorded,
         20% of the fee (FAILED_FEE_RETAINED) stays in the vault as non-refundable
         validator bandwidth and 80% moves to the caller's claimable credits. A body
-        over MAX_PAYLOAD_BYTES reverts with ERR_PAYLOAD_TOO_LARGE (full value back)."""
+        over MAX_PAYLOAD_BYTES is an unprocessable payload and takes the same path
+        with status UNREACHABLE_OVERSIZE: it never reverts, so downloading
+        oversized bodies is never free."""
         if gl.message.value != ATTESTATION_FEE:
             raise gl.vm.UserError(f"{ERR_FEE} expected {ATTESTATION_FEE}")
         try:
@@ -629,9 +649,6 @@ class EvidenceNotary(gl.contract.Contract):
             return _read_equivalent(leaders_res.calldata, mine)
 
         result = gl.vm.run_nondet(leader_fn, validator_fn)
-
-        if not result["ok"] and result["code"] == STATUS_TOO_LARGE:
-            raise gl.vm.UserError(f"{ERR_TOO_LARGE} limit {MAX_PAYLOAD_BYTES} bytes")
 
         # No revert is possible past this point, so state is mutated only here.
         self.total_received += ATTESTATION_FEE

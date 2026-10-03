@@ -1,9 +1,10 @@
-"""Notarize four live sources on Studio Next and record the proofs.
+"""Notarize five live sources on Studio Next and record the proofs.
 
     python scripts/interact_live.py
 
-Cases: RFC 9000, Python 3.13 release notes, W3C DID Core, and a dead docs.python.org
-URL that must end in the 80/20 split (0.04 GEN refundable, 0.01 GEN kept). Each case records the transaction hash, the
+Cases: RFC 9000, Python 3.13 release notes, W3C DID Core, a dead docs.python.org URL, and a
+10 MiB file over the payload cap. The last two must end in the 80/20 split (0.04 GEN
+refundable, 0.01 GEN kept) without reverting. Each case records the transaction hash, the
 validator consensus result and per-validator votes, the on-chain attestation,
 and the contract's accounting before and after. The refund is then withdrawn
 and the vault swept, with the solvency identity read back from the contract
@@ -25,6 +26,8 @@ CASES = [
     ("W3C Decentralized Identifiers (DID Core)", "https://w3.org/TR/did-core/", True),
     ("Dead link -- HTTP 404 on docs.python.org (80% refund, 20% retained)",
      "https://docs.python.org/3/evidencenotary-nonexistent-page-404.html", False),
+    ("Oversized payload -- 10 MiB file, over the 4 MiB cap (no revert; 80% refund, 20% retained)",
+     "https://proof.ovh.net/files/10Mb.dat", False),
 ]
 
 
@@ -130,13 +133,16 @@ def main() -> None:
             assert int(after["protocol_vault"]) == int(before["protocol_vault"]) + ch.FEE
             entry["hashes"] = {"raw_sha256": att["raw_sha256"], "normalized_sha256": att["normalized_sha256"],
                                "content_kind": att["content_kind"], "size_bytes": att["size_bytes"]}
-            assert view("verify_attestation", att["attestation_id"], att["raw_sha256"]) is True
+            # HTML: only the validator-agreed normalized hash is canon; the leader's raw hash is informational
+            assert view("verify_attestation", att["attestation_id"], att["raw_sha256"]) is False
         else:
             credits_after = int(view("claimable_of", me))
             entry["outcome"] = (returned or {}).get("status", "REFUNDED") if isinstance(returned, dict) else "REFUNDED"
             entry["refund"] = {"claimable_before": str(credits_before), "claimable_after": str(credits_after)}
             print(f"   refunded -> claimable {credits_before} -> {credits_after}  returned={returned}")
             entry["penalty_retained"] = str(ch.PENALTY)
+            if "Oversized" in label:
+                assert entry["outcome"] == "UNREACHABLE_OVERSIZE", entry["outcome"]
             assert credits_after == credits_before + ch.REFUND  # 80% refundable
             assert after["attestation_count"] == before["attestation_count"]
             assert int(after["protocol_vault"]) == int(before["protocol_vault"]) + ch.PENALTY  # 20% kept

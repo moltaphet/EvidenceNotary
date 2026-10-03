@@ -452,22 +452,58 @@ def test_payload_exactly_at_cap_is_accepted(chain):
 
 
 @pytest.mark.parametrize("extra", [1, 1000])
-def test_payload_over_cap_reverts_explicitly_and_is_never_truncated(chain, extra):
+def test_oversized_payload_incurs_20_percent_penalty_without_revert(chain, extra):
     body = b"A" * (MAX_PAYLOAD + extra)
     chain.vm.mock_web(r".*", typed(body, "application/pdf"))
-    with chain.vm.expect_revert("ERR_PAYLOAD_TOO_LARGE"):
-        chain.attest(chain.alice, "https://example.com/huge.pdf")
+    r = chain.attest(chain.alice, "https://example.com/huge.pdf")  # must NOT revert
+    assert r["status"] == "UNREACHABLE_OVERSIZE"
+    assert r["attestation_id"] == 0
+    assert r["retained"] == str(PENALTY) == "10000000000000000"
+    assert r["refunded"] == str(REFUND) == "40000000000000000"
     s = chain.state()
-    assert s["attestation_count"] == "0"
-    assert s["protocol_vault"] == "0" and s["total_credits"] == "0" and s["total_received"] == "0"
+    assert s["attestation_count"] == "0"  # nothing recorded, nothing truncated
+    assert s["protocol_vault"] == str(PENALTY)  # 0.01 GEN kept
+    assert s["total_credits"] == str(REFUND)  # 0.04 GEN refundable
+    assert s["total_received"] == str(FEE)
+    assert chain.c.claimable_of(chain.key(chain.alice)) == REFUND
+    with chain.vm.expect_revert("ERR_NOT_FOUND"):
+        chain.c.get_latest_attestation("https://example.com/huge.pdf")
+    chain.assert_invariants()
+    assert chain.withdraw(chain.alice) == REFUND
+    assert chain.sweep(chain.alice) == PENALTY
+    assert chain.mirror == 0
     chain.assert_invariants()
 
 
-def test_over_cap_html_also_reverts(chain):
+def test_over_cap_html_is_penalized_the_same_way(chain):
     page = "<html><body><p>" + ("x " * (MAX_PAYLOAD // 2 + 10)) + "</p></body></html>"
     chain.page(r".*", 200, page)
-    with chain.vm.expect_revert("ERR_PAYLOAD_TOO_LARGE"):
-        chain.attest(chain.alice, "https://example.com/huge")
+    r = chain.attest(chain.alice, "https://example.com/huge")
+    assert r["status"] == "UNREACHABLE_OVERSIZE"
+    assert chain.state()["protocol_vault"] == str(PENALTY)
+    assert chain.c.claimable_of(chain.key(chain.alice)) == REFUND
+    chain.assert_invariants()
+
+
+def test_oversize_spam_is_not_free(chain):
+    chain.vm.mock_web(r".*", typed(b"B" * (MAX_PAYLOAD + 1), "application/octet-stream"))
+    for _ in range(5):
+        chain.attest(chain.carol, "https://example.com/big.bin")
+    assert chain.withdraw(chain.carol) == 5 * REFUND
+    assert chain.state()["protocol_vault"] == str(5 * PENALTY)  # attacker paid 0.05 GEN
+    chain.assert_invariants()
+
+
+def test_validators_agree_on_oversize_as_a_failure_class(chain):
+    chain.vm.mock_web(r".*", typed(b"C" * (MAX_PAYLOAD + 1), "application/pdf"))
+    _leader_attest(chain, "https://example.com/big.pdf")
+    assert chain.vm.run_validator() is True
+    chain.vm.clear_mocks()
+    chain.vm.mock_web(r".*", typed(b"C" * 100, "application/pdf"))  # validator sees a small file
+    assert chain.vm.run_validator() is False
+    chain.vm.clear_mocks()
+    chain.page(r".*", 404, "gone")  # or a different failure class
+    assert chain.vm.run_validator() is False
 
 
 def test_bytes_body_is_decoded(chain):
@@ -1189,15 +1225,60 @@ def test_html_raw_hash_tracks_every_byte_even_when_text_is_equal(chain):
     assert a["raw_sha256"] != b["raw_sha256"]
 
 
-def test_verify_attestation_accepts_raw_or_normalized(chain):
+def test_verify_attestation_checks_normalized_hash_for_html(chain):
     chain.page(r".*", 200)
     chain.attest(chain.alice, "https://example.com/")
     a = chain.c.get_attestation(1)
-    assert chain.c.verify_attestation(1, a["raw_sha256"]) is True
+    assert a["content_kind"] == "html"
     assert chain.c.verify_attestation(1, a["normalized_sha256"]) is True
-    assert chain.c.verify_attestation(1, "0x" + a["raw_sha256"].upper()) is True
+    assert chain.c.verify_attestation(1, "0x" + a["normalized_sha256"].upper()) is True
+    # the leader-measured raw hash of HTML is informational and is NOT canon
+    assert a["raw_sha256"] != a["normalized_sha256"]
+    assert chain.c.verify_attestation(1, a["raw_sha256"]) is False
     assert chain.c.verify_attestation(1, "0" * 64) is False
-    assert chain.c.verify_attestation(2, a["raw_sha256"]) is False
+    assert chain.c.verify_attestation(2, a["normalized_sha256"]) is False
+
+
+def test_verify_attestation_text_kind_uses_normalized_hash(chain):
+    chain.vm.mock_web(r".*", typed("  A plain   text document\nwith enough characters in it.  ", "text/plain"))
+    chain.attest(chain.alice, "https://example.com/a.txt")
+    a = chain.c.get_attestation(1)
+    assert a["content_kind"] == "text"
+    assert chain.c.verify_attestation(1, a["normalized_sha256"]) is True
+    assert chain.c.verify_attestation(1, a["raw_sha256"]) is False
+
+
+def test_verify_attestation_checks_raw_hash_for_binary(chain):
+    chain.vm.mock_web(r".*", typed(BIN_A, "application/pdf"))
+    chain.attest(chain.alice, "https://example.com/a.pdf")
+    a = chain.c.get_attestation(1)
+    assert chain.c.verify_attestation(1, sha(BIN_A)) is True
+    assert chain.c.verify_attestation(1, a["raw_sha256"]) is True
+    assert chain.c.verify_attestation(1, sha(BIN_B)) is False
+
+
+def test_snippet_mismatch_fails_validator_consensus(chain):
+    chain.page(r".*", 200)
+    _leader_attest(chain)
+    assert chain.vm.run_validator() is True  # honest leader result agrees
+    # identical kind / hashes / title, but a doctored excerpt
+    honest = {"ok": True, "code": "ATTESTED", "kind": "html", "size": 1,
+              "raw": "r" * 64, "title": "Sample Document",
+              "norm": expected_hash(page_text()), "snippet": page_text()[:200]}
+    assert chain.vm.run_validator(leader_result=honest) is True
+    for bad in (honest["snippet"][:-1], honest["snippet"] + "x", "Buy cheap pills now", ""):
+        forged = dict(honest, snippet=bad)
+        assert chain.vm.run_validator(leader_result=forged) is False, bad
+    forged = {k: v for k, v in honest.items() if k != "snippet"}  # missing field
+    assert chain.vm.run_validator(leader_result=forged) is False
+
+
+def test_raw_hash_difference_alone_does_not_fail_html_consensus(chain):
+    chain.page(r".*", 200, html_page(LONG_TEXT, "Doc", tracker="leader"))
+    _leader_attest(chain)
+    chain.vm.clear_mocks()
+    chain.page(r".*", 200, html_page(LONG_TEXT, "Doc", tracker="validator"))
+    assert chain.vm.run_validator() is True  # raw differs, text/snippet agree
 
 
 def test_pinned_id_stays_valid_after_anyone_advances_latest(chain):
