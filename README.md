@@ -388,7 +388,38 @@ loopback, private-range, link-local and cloud-metadata access (`127.0.0.1` and e
 including re-checking the destination address after every redirect. If an operator's validators lack such egress
 controls, an attacker can make them request internal endpoints. What bounds the residual exposure by construction:
 only two hashes, a title and a 200-character snippet are ever stored, never the body, and an internal service would
-also have to answer over TLS on port 443.
+also have to answer over TLS on port 443. A live probe of `localtest.me` is recorded below.
+
+#### Empirical record: live probe of `https://localtest.me/` (Studio Next)
+
+`localtest.me` is a public name whose A record is `127.0.0.1` (`dig +short localtest.me` -> `127.0.0.1`), so it passes
+the syntactic filter: the contract's `canonicalize` returns `https://localtest.me/` rather than `ERR_INVALID_URL`.
+`scripts/probe_ssrf.py` attested it against the deployed contract (table below) with the exact 0.05 GEN fee:
+
+| | |
+|---|---|
+| URL tested | `https://localtest.me/` |
+| Transaction | `0x214aa22de5bd2682aac8d4c4a0b7ade0842c0bd4d96a5ba1daa38d23ab5405dc` |
+| Execution / consensus | `FINISHED_WITH_RETURN` / `MAJORITY_AGREE` (3 agree / 2 idle) |
+| Contract state hash (leader) | `0cb0fe9fa83de3078afa7f9b87f28a284d23b38294d5328a72b57f122e9abf4e` |
+| Returned by `attest` | `{status: "UNREACHABLE", attestation_id: 0, retained: "10000000000000000", refunded: "40000000000000000"}` |
+| Attestation recorded | false (`attestation_count` unchanged) |
+| Fee split | vault 0 -> 10000000000000000; `claimable_credits` 0 -> 40000000000000000 (0.01 / 0.04 GEN) |
+
+What this shows: the validators did **not** return any content for `localtest.me`. The fetch failed at the transport level
+(the contract maps a raised fetch error, with no HTTP status, to `UNREACHABLE`, which is distinct from a 4xx
+`AMBIGUOUS_VOID`), no hash, title or snippet was produced or stored, all validators agreed on that failure, and the
+caller paid the 20% penalty. Nothing from the loopback name reached the chain.
+
+What this does **not** show: *why* the fetch failed. The same `UNREACHABLE` result is produced by (a) an egress
+firewall dropping loopback-bound traffic, (b) nothing listening on `127.0.0.1:443` in the validator's environment
+(connection refused), or (c) TLS verification failing against whatever answers. The contract intentionally collapses these
+into one failure class, and Studio Next exposes neither the validators' network policy nor an execution trace
+(`gen_dbg_traceTransaction` is not available), so the probe cannot tell them apart. It is therefore **one observation that
+the loopback-resolving name yielded no content on this network, not proof that an egress firewall exists or that
+internal services are protected**. A validator environment that does run an HTTPS service on its loopback with a
+certificate valid for the requested name would be a different case, and would not be caught by anything in this
+contract. The reliance on validator egress controls stated above stands, and operators should verify it directly.
 
 ### 8.3 Web cloaking
 

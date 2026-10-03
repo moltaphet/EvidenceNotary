@@ -490,5 +490,45 @@
     "total_paid_out": "250000000000000000",
     "total_received": "250000000000000000"
   },
-  "interacted_at": "2026-10-03T17:48:54+00:00"
+  "interacted_at": "2026-10-03T17:48:54+00:00",
+  "ssrf_probe": {
+    "url": "https://localtest.me/",
+    "canonical_url": "https://localtest.me/",
+    "passes_url_filter": true,
+    "tx_hash": "0x214aa22de5bd2682aac8d4c4a0b7ade0842c0bd4d96a5ba1daa38d23ab5405dc",
+    "consensus": {
+      "result": "MAJORITY_AGREE",
+      "state_hashes": {
+        "leader": "0cb0fe9fa83de3078afa7f9b87f28a284d23b38294d5328a72b57f122e9abf4e",
+        "validator_0_validator_agree": "0cb0fe9fa83de3078afa7f9b87f28a284d23b38294d5328a72b57f122e9abf4e",
+        "validator_2_validator_agree": "0cb0fe9fa83de3078afa7f9b87f28a284d23b38294d5328a72b57f122e9abf4e"
+      },
+      "execution": "FINISHED_WITH_RETURN",
+      "votes": {
+        "0x05d8aFc66B515038712537f99cAAEA73d16f0007": "agree",
+        "0x5cDf4BdDeEDa0e32ED596b94f69AcC0FbB57f264": "agree",
+        "0x8142E5D1b04f84c3cD995C25AAe31B31F8e0379E": "idle",
+        "0xA793D9dc0ED9edC1f9F732bB68b5D3AFA934F52D": "idle",
+        "0xcEf1Baa172d0b4D99Dcc505B36332F26D1088025": "agree"
+      },
+      "tally": {
+        "agree": 3,
+        "idle": 2
+      },
+      "tx_execution_hash": ""
+    },
+    "returned": {
+      "attestation_id": 0,
+      "canonical_url": "https://localtest.me/",
+      "refunded": "40000000000000000",
+      "retained": "10000000000000000",
+      "status": "UNREACHABLE"
+    },
+    "attestation_recorded": false,
+    "vault_before": "0",
+    "vault_after": "10000000000000000",
+    "claimable_before": "0",
+    "claimable_after": "40000000000000000",
+    "probed_at": "2026-10-03T19:35:24+00:00"
+  }
 }
